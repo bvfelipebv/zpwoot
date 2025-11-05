@@ -13,14 +13,12 @@ import (
 	"zpwoot/pkg/utils"
 )
 
-// PairingService gerencia pareamento de sessões WhatsApp
 type PairingService struct {
 	whatsappSvc *WhatsAppService
 	sessionRepo *repository.SessionRepository
 	manager     *SessionManager
 }
 
-// NewPairingService cria um novo serviço de pareamento
 func NewPairingService(whatsappSvc *WhatsAppService, sessionRepo *repository.SessionRepository, manager *SessionManager) *PairingService {
 	return &PairingService{
 		whatsappSvc: whatsappSvc,
@@ -29,7 +27,6 @@ func NewPairingService(whatsappSvc *WhatsAppService, sessionRepo *repository.Ses
 	}
 }
 
-// GenerateQRCode gera QR code para pareamento
 func (p *PairingService) GenerateQRCode(ctx context.Context, sessionID string) (string, error) {
 	// Buscar sessão
 	session, err := p.sessionRepo.GetByID(ctx, sessionID)
@@ -111,7 +108,6 @@ func (p *PairingService) GenerateQRCode(ctx context.Context, sessionID string) (
 	}
 }
 
-// PairWithPhone pareia usando número de telefone
 func (p *PairingService) PairWithPhone(ctx context.Context, sessionID, phoneNumber string) (string, error) {
 	// Buscar sessão
 	session, err := p.sessionRepo.GetByID(ctx, sessionID)
@@ -159,7 +155,6 @@ func (p *PairingService) PairWithPhone(ctx context.Context, sessionID, phoneNumb
 	return code, nil
 }
 
-// waitForPairing aguarda o pareamento ser concluído
 func (p *PairingService) waitForPairing(client *whatsmeow.Client, sessionID string) {
 	ctx := context.Background()
 
@@ -200,7 +195,6 @@ func (p *PairingService) waitForPairing(client *whatsmeow.Client, sessionID stri
 	}
 }
 
-// handlePairingSuccess processa pareamento bem-sucedido
 func (p *PairingService) handlePairingSuccess(ctx context.Context, client *whatsmeow.Client, sessionID string) {
 	logger.Log.Info().
 		Str("session_id", sessionID).

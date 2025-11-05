@@ -15,14 +15,11 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-// WhatsAppService gerencia a integração com whatsmeow
 type WhatsAppService struct {
 	container *sqlstore.Container
 	db        *sql.DB
 }
 
-// NewWhatsAppService cria um novo serviço WhatsApp
-// Usa a mesma conexão SQL do banco de dados principal
 func NewWhatsAppService(db *sql.DB) (*WhatsAppService, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database connection is nil")
@@ -47,7 +44,6 @@ func NewWhatsAppService(db *sql.DB) (*WhatsAppService, error) {
 	}, nil
 }
 
-// GetOrCreateDevice obtém ou cria um device para uma sessão
 func (s *WhatsAppService) GetOrCreateDevice(ctx context.Context, sessionID string) (*store.Device, error) {
 	// Tentar obter device existente
 	devices, err := s.container.GetAllDevices(ctx)
@@ -74,7 +70,6 @@ func (s *WhatsAppService) GetOrCreateDevice(ctx context.Context, sessionID strin
 	return device, nil
 }
 
-// GetDeviceByJID busca device por JID
 func (s *WhatsAppService) GetDeviceByJID(ctx context.Context, jid types.JID) (*store.Device, error) {
 	device, err := s.container.GetDevice(ctx, jid)
 	if err != nil {
@@ -83,7 +78,6 @@ func (s *WhatsAppService) GetDeviceByJID(ctx context.Context, jid types.JID) (*s
 	return device, nil
 }
 
-// GetFirstDevice retorna o primeiro device disponível
 func (s *WhatsAppService) GetFirstDevice(ctx context.Context) (*store.Device, error) {
 	device, err := s.container.GetFirstDevice(ctx)
 	if err != nil {
@@ -92,7 +86,6 @@ func (s *WhatsAppService) GetFirstDevice(ctx context.Context) (*store.Device, er
 	return device, nil
 }
 
-// SaveDevice salva um device no banco
 func (s *WhatsAppService) SaveDevice(ctx context.Context, device *store.Device) error {
 	if device == nil {
 		return fmt.Errorf("device is nil")
@@ -109,7 +102,6 @@ func (s *WhatsAppService) SaveDevice(ctx context.Context, device *store.Device) 
 	return nil
 }
 
-// DeleteDevice deleta um device do banco
 func (s *WhatsAppService) DeleteDevice(ctx context.Context, device *store.Device) error {
 	if device == nil {
 		return fmt.Errorf("device is nil")
@@ -126,7 +118,6 @@ func (s *WhatsAppService) DeleteDevice(ctx context.Context, device *store.Device
 	return nil
 }
 
-// GetAllDevices retorna todos os devices
 func (s *WhatsAppService) GetAllDevices(ctx context.Context) ([]*store.Device, error) {
 	devices, err := s.container.GetAllDevices(ctx)
 	if err != nil {
@@ -135,12 +126,10 @@ func (s *WhatsAppService) GetAllDevices(ctx context.Context) ([]*store.Device, e
 	return devices, nil
 }
 
-// NewClient cria um novo cliente WhatsApp para um device
 func (s *WhatsAppService) NewClient(device *store.Device) *whatsmeow.Client {
 	return whatsmeow.NewClient(device, nil)
 }
 
-// Close fecha o container do whatsmeow
 func (s *WhatsAppService) Close() error {
 	if s.container != nil {
 		return s.container.Close()

@@ -13,7 +13,6 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-// SessionManager gerencia sessões WhatsApp ativas
 type SessionManager struct {
 	whatsappSvc *WhatsAppService
 	sessionRepo *repository.SessionRepository
@@ -26,7 +25,6 @@ type SessionManager struct {
 	eventHandler *EventHandler
 }
 
-// NewSessionManager cria um novo gerenciador de sessões
 func NewSessionManager(whatsappSvc *WhatsAppService, sessionRepo *repository.SessionRepository) *SessionManager {
 	manager := &SessionManager{
 		whatsappSvc: whatsappSvc,
@@ -40,7 +38,6 @@ func NewSessionManager(whatsappSvc *WhatsAppService, sessionRepo *repository.Ses
 	return manager
 }
 
-// CreateSession cria uma nova sessão no banco (método legado)
 func (m *SessionManager) CreateSession(ctx context.Context, name, webhookURL string) (*model.Session, error) {
 	session := &model.Session{
 		Name:      name,
@@ -68,7 +65,6 @@ func (m *SessionManager) CreateSession(ctx context.Context, name, webhookURL str
 	return session, nil
 }
 
-// CreateSessionWithConfig cria uma nova sessão com configuração completa
 func (m *SessionManager) CreateSessionWithConfig(ctx context.Context, session *model.Session) error {
 	if err := m.sessionRepo.Create(ctx, session); err != nil {
 		return fmt.Errorf("failed to create session: %w", err)
@@ -82,17 +78,14 @@ func (m *SessionManager) CreateSessionWithConfig(ctx context.Context, session *m
 	return nil
 }
 
-// GetSession busca uma sessão por ID
 func (m *SessionManager) GetSession(ctx context.Context, sessionID string) (*model.Session, error) {
 	return m.sessionRepo.GetByID(ctx, sessionID)
 }
 
-// ListSessions lista todas as sessões
 func (m *SessionManager) ListSessions(ctx context.Context) ([]*model.Session, error) {
 	return m.sessionRepo.List(ctx)
 }
 
-// DeleteSession deleta uma sessão e desconecta se estiver ativa
 func (m *SessionManager) DeleteSession(ctx context.Context, sessionID string) error {
 	// Desconectar se estiver ativo
 	if err := m.DisconnectSession(ctx, sessionID); err != nil {
@@ -111,7 +104,6 @@ func (m *SessionManager) DeleteSession(ctx context.Context, sessionID string) er
 	return nil
 }
 
-// ConnectSession conecta uma sessão ao WhatsApp
 func (m *SessionManager) ConnectSession(ctx context.Context, sessionID string) error {
 	// Buscar sessão
 	session, err := m.sessionRepo.GetByID(ctx, sessionID)
@@ -163,7 +155,6 @@ func (m *SessionManager) ConnectSession(ctx context.Context, sessionID string) e
 	return nil
 }
 
-// DisconnectSession desconecta uma sessão
 func (m *SessionManager) DisconnectSession(ctx context.Context, sessionID string) error {
 	m.clientsMux.Lock()
 	client, exists := m.clients[sessionID]
@@ -191,7 +182,6 @@ func (m *SessionManager) DisconnectSession(ctx context.Context, sessionID string
 	return nil
 }
 
-// GetClient retorna o cliente WhatsApp ativo para uma sessão
 func (m *SessionManager) GetClient(sessionID string) (*whatsmeow.Client, error) {
 	m.clientsMux.RLock()
 	defer m.clientsMux.RUnlock()
@@ -204,7 +194,6 @@ func (m *SessionManager) GetClient(sessionID string) (*whatsmeow.Client, error) 
 	return client, nil
 }
 
-// IsClientActive verifica se um cliente está ativo
 func (m *SessionManager) IsClientActive(sessionID string) bool {
 	m.clientsMux.RLock()
 	defer m.clientsMux.RUnlock()
@@ -213,7 +202,6 @@ func (m *SessionManager) IsClientActive(sessionID string) bool {
 	return exists
 }
 
-// GetSessionStatus retorna o status detalhado de uma sessão
 func (m *SessionManager) GetSessionStatus(ctx context.Context, sessionID string) (map[string]interface{}, error) {
 	// Buscar sessão do banco
 	session, err := m.sessionRepo.GetByID(ctx, sessionID)
@@ -251,7 +239,6 @@ func (m *SessionManager) GetSessionStatus(ctx context.Context, sessionID string)
 	return status, nil
 }
 
-// UpdateWebhook atualiza as configurações de webhook de uma sessão (método legado)
 func (m *SessionManager) UpdateWebhook(ctx context.Context, sessionID, webhookURL, webhookEvents string) error {
 	session, err := m.sessionRepo.GetByID(ctx, sessionID)
 	if err != nil {
@@ -282,7 +269,6 @@ func (m *SessionManager) UpdateWebhook(ctx context.Context, sessionID, webhookUR
 	return nil
 }
 
-// UpdateWebhookConfig atualiza as configurações de webhook com estrutura completa
 func (m *SessionManager) UpdateWebhookConfig(ctx context.Context, sessionID string, webhookConfig *model.WebhookConfig) error {
 	session, err := m.sessionRepo.GetByID(ctx, sessionID)
 	if err != nil {
@@ -304,7 +290,6 @@ func (m *SessionManager) UpdateWebhookConfig(ctx context.Context, sessionID stri
 	return nil
 }
 
-// RestoreAllSessions restaura todas as sessões conectadas ao iniciar
 func (m *SessionManager) RestoreAllSessions(ctx context.Context) error {
 	// Buscar sessões conectadas
 	sessions, err := m.sessionRepo.ListConnected(ctx)
@@ -335,7 +320,6 @@ func (m *SessionManager) RestoreAllSessions(ctx context.Context) error {
 	return nil
 }
 
-// Shutdown desconecta todas as sessões ativas
 func (m *SessionManager) Shutdown(ctx context.Context) error {
 	m.clientsMux.Lock()
 	defer m.clientsMux.Unlock()
@@ -367,7 +351,6 @@ func (m *SessionManager) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// GetActiveSessionsCount retorna o número de sessões ativas
 func (m *SessionManager) GetActiveSessionsCount() int {
 	m.clientsMux.RLock()
 	defer m.clientsMux.RUnlock()

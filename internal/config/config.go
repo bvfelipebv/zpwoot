@@ -8,7 +8,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Config holds application configuration values
 type Config struct {
 	Port            string
 	DatabaseURL     string
@@ -25,10 +24,8 @@ type Config struct {
 	AutoRestoreSessions bool
 }
 
-// AppConfig is the global configuration instance
 var AppConfig *Config
 
-// Load loads configuration from .env and environment variables
 func Load() error {
 	// Load .env file if exists (ignore error if not found)
 	_ = godotenv.Load()
@@ -55,7 +52,6 @@ func Load() error {
 	return nil
 }
 
-// GetDatabaseDSN returns the configured database DSN (raw value for now)
 func GetDatabaseDSN() string {
 	if AppConfig == nil {
 		return ""
@@ -63,7 +59,6 @@ func GetDatabaseDSN() string {
 	return AppConfig.DatabaseURL
 }
 
-// getEnv returns env value or default
 func getEnv(key, defaultVal string) string {
 	v := os.Getenv(key)
 	if v == "" {
@@ -72,7 +67,6 @@ func getEnv(key, defaultVal string) string {
 	return v
 }
 
-// getEnvInt returns env value as int or default
 func getEnvInt(key string, defaultVal int) int {
 	v := os.Getenv(key)
 	if v == "" {
@@ -85,7 +79,6 @@ func getEnvInt(key string, defaultVal int) int {
 	return i
 }
 
-// getEnvBool returns env value as bool or default
 func getEnvBool(key string, defaultVal bool) bool {
 	v := os.Getenv(key)
 	if v == "" {

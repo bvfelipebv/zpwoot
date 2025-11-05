@@ -7,7 +7,6 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
-// GenerateQRCodeImage gera uma imagem QR code em formato base64 data URL
 func GenerateQRCodeImage(content string) (string, error) {
 	// Gerar QR code como PNG
 	png, err := qrcode.Encode(content, qrcode.Medium, 256)
@@ -24,7 +23,6 @@ func GenerateQRCodeImage(content string) (string, error) {
 	return dataURL, nil
 }
 
-// GenerateQRCodePNG gera uma imagem QR code como bytes PNG
 func GenerateQRCodePNG(content string, size int) ([]byte, error) {
 	if size <= 0 {
 		size = 256

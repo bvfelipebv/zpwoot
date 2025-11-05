@@ -9,11 +9,8 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-// Log é o logger principal do pacote (zerolog.Logger)
 var Log zerolog.Logger
 
-// Init inicializa o zerolog com o nível informado. Usa ConsoleWriter para
-// tornar a saída legível em desenvolvimento.
 func Init(level string) {
 	lvl := zerolog.InfoLevel
 	switch strings.ToLower(level) {

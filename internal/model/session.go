@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-// SessionStatus representa os possíveis estados de uma sessão
 type SessionStatus string
 
 const (
@@ -18,7 +17,6 @@ const (
 	SessionStatusLoggedOut    SessionStatus = "logged_out"
 )
 
-// PairingMethod representa o método de pareamento
 type PairingMethod string
 
 const (
@@ -26,7 +24,6 @@ const (
 	PairingMethodPhone PairingMethod = "phone"
 )
 
-// ProxyConfig representa a configuração de proxy
 type ProxyConfig struct {
 	Enabled  bool   `json:"enabled"`
 	Protocol string `json:"protocol"` // http, https, socks5
@@ -36,7 +33,6 @@ type ProxyConfig struct {
 	Password string `json:"password,omitempty"`
 }
 
-// WebhookConfig representa a configuração de webhook
 type WebhookConfig struct {
 	Enabled bool     `json:"enabled"`
 	URL     string   `json:"url"`
@@ -44,8 +40,6 @@ type WebhookConfig struct {
 	Token   string   `json:"token,omitempty"`
 }
 
-// Session representa uma sessão WhatsApp
-// Usamos structs simples sem tags GORM, pois usamos database/sql nativo
 type Session struct {
 	ID            string // UUID gerado automaticamente
 	Name          string
@@ -68,22 +62,18 @@ type Session struct {
 	UpdatedAt     time.Time
 }
 
-// IsConnected verifica se a sessão está conectada
 func (s *Session) IsConnected() bool {
 	return s.Connected && s.Status == "connected"
 }
 
-// CanConnect verifica se a sessão pode conectar
 func (s *Session) CanConnect() bool {
 	return s.DeviceJID != "" && (s.Status == "disconnected" || s.Status == "failed")
 }
 
-// NeedsPairing verifica se precisa de pareamento
 func (s *Session) NeedsPairing() bool {
 	return s.DeviceJID == ""
 }
 
-// Value implementa driver.Valuer para ProxyConfig
 func (p *ProxyConfig) Value() (driver.Value, error) {
 	if p == nil {
 		return nil, nil
@@ -91,7 +81,6 @@ func (p *ProxyConfig) Value() (driver.Value, error) {
 	return json.Marshal(p)
 }
 
-// Scan implementa sql.Scanner para ProxyConfig
 func (p *ProxyConfig) Scan(value interface{}) error {
 	if value == nil {
 		return nil
@@ -110,7 +99,6 @@ func (p *ProxyConfig) Scan(value interface{}) error {
 	return json.Unmarshal(bytes, p)
 }
 
-// Value implementa driver.Valuer para WebhookConfig
 func (w *WebhookConfig) Value() (driver.Value, error) {
 	if w == nil {
 		return nil, nil
@@ -118,7 +106,6 @@ func (w *WebhookConfig) Value() (driver.Value, error) {
 	return json.Marshal(w)
 }
 
-// Scan implementa sql.Scanner para WebhookConfig
 func (w *WebhookConfig) Scan(value interface{}) error {
 	if value == nil {
 		return nil
@@ -137,10 +124,8 @@ func (w *WebhookConfig) Scan(value interface{}) error {
 	return json.Unmarshal(bytes, w)
 }
 
-// StringArray é um helper para converter []string para JSON
 type StringArray []string
 
-// Value implementa driver.Valuer para salvar no banco
 func (s StringArray) Value() (driver.Value, error) {
 	if len(s) == 0 {
 		return "[]", nil
@@ -148,7 +133,6 @@ func (s StringArray) Value() (driver.Value, error) {
 	return json.Marshal(s)
 }
 
-// Scan implementa sql.Scanner para ler do banco
 func (s *StringArray) Scan(value interface{}) error {
 	if value == nil {
 		*s = []string{}
@@ -169,10 +153,8 @@ func (s *StringArray) Scan(value interface{}) error {
 	return json.Unmarshal(bytes, s)
 }
 
-// JSONMap é um helper para converter map[string]interface{} para JSON
 type JSONMap map[string]interface{}
 
-// Value implementa driver.Valuer para salvar no banco
 func (j JSONMap) Value() (driver.Value, error) {
 	if len(j) == 0 {
 		return "{}", nil
@@ -180,7 +162,6 @@ func (j JSONMap) Value() (driver.Value, error) {
 	return json.Marshal(j)
 }
 
-// Scan implementa sql.Scanner para ler do banco
 func (j *JSONMap) Scan(value interface{}) error {
 	if value == nil {
 		*j = make(map[string]interface{})

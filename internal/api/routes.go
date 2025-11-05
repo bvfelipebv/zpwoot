@@ -9,7 +9,6 @@ import (
 	"zpwoot/internal/api/middleware"
 )
 
-// RegisterRoutes registra todas as rotas da API
 func RegisterRoutes(r *gin.Engine, sessionHandler *handlers.SessionHandler) {
 	// Middlewares globais
 	r.Use(middleware.CORS())

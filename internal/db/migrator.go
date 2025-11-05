@@ -10,10 +10,8 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-//go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-// Migration representa uma migração de banco de dados
 type Migration struct {
 	Version int
 	Name    string
@@ -21,7 +19,6 @@ type Migration struct {
 	DownSQL string
 }
 
-// RunMigrations executa todas as migrações pendentes
 func RunMigrations(ctx context.Context) error {
 	logger.Log.Info().Msg("Starting database migrations...")
 
@@ -71,7 +68,6 @@ func RunMigrations(ctx context.Context) error {
 	return nil
 }
 
-// createMigrationsTable cria a tabela de controle de migrações
 func createMigrationsTable(ctx context.Context) error {
 	query := `
 	CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -85,7 +81,6 @@ func createMigrationsTable(ctx context.Context) error {
 	return err
 }
 
-// loadMigrations carrega todas as migrações dos arquivos embedded
 func loadMigrations() ([]Migration, error) {
 	entries, err := migrationsFS.ReadDir("migrations")
 	if err != nil {
@@ -161,7 +156,6 @@ func loadMigrations() ([]Migration, error) {
 	return migrations, nil
 }
 
-// getAppliedMigrations retorna as versões de migrações já aplicadas
 func getAppliedMigrations(ctx context.Context) (map[int]bool, error) {
 	query := `SELECT version FROM schema_migrations ORDER BY version`
 
@@ -183,7 +177,6 @@ func getAppliedMigrations(ctx context.Context) (map[int]bool, error) {
 	return applied, rows.Err()
 }
 
-// applyMigration aplica uma migração específica
 func applyMigration(ctx context.Context, migration Migration) error {
 	// Iniciar transação
 	tx, err := DB.BeginTx(ctx, nil)
@@ -214,7 +207,6 @@ func applyMigration(ctx context.Context, migration Migration) error {
 	return nil
 }
 
-// RollbackMigration reverte uma migração específica
 func RollbackMigration(ctx context.Context, version int) error {
 	migrations, err := loadMigrations()
 	if err != nil {

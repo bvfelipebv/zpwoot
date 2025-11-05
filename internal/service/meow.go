@@ -8,19 +8,15 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-// MeowService é um stub para encapsular a lógica do cliente whatsmeow.
-// No momento é um stub que armazena o dataDir e possui Start/Stop simples.
 type MeowService struct {
 	DataDir string
 	running bool
 }
 
-// NewMeowService cria uma instância do MeowService
 func NewMeowService() *MeowService {
 	return &MeowService{DataDir: config.AppConfig.WhatsAppDataDir}
 }
 
-// Start inicia o MeowService (stub)
 func (m *MeowService) Start() error {
 	if m.running {
 		return nil
@@ -36,7 +32,6 @@ func (m *MeowService) Start() error {
 	return nil
 }
 
-// Stop para o MeowService
 func (m *MeowService) Stop() error {
 	if !m.running {
 		return nil
@@ -46,7 +41,6 @@ func (m *MeowService) Stop() error {
 	return nil
 }
 
-// Status retorna se o serviço está rodando
 func (m *MeowService) Status() string {
 	if m.running {
 		return "running"
@@ -54,7 +48,6 @@ func (m *MeowService) Status() string {
 	return "stopped"
 }
 
-// Example method to send a message (stub)
 func (m *MeowService) SendMessage(to string, message string) error {
 	if !m.running {
 		return fmt.Errorf("service not running")

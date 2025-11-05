@@ -10,8 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AuthenticateGlobal middleware para autenticação via API Key
-// Usa apenas o header: apikey: <seu_token>
 func AuthenticateGlobal() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Obter API Key configurada
@@ -66,7 +64,6 @@ func AuthenticateGlobal() gin.HandlerFunc {
 	}
 }
 
-// CORS middleware para permitir requisições cross-origin
 func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -83,7 +80,6 @@ func CORS() gin.HandlerFunc {
 	}
 }
 
-// RequestLogger middleware para logging de requisições
 func RequestLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Log.Info().

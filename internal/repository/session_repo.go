@@ -9,17 +9,14 @@ import (
 	"zpwoot/internal/model"
 )
 
-// SessionRepository gerencia operações de sessão no banco usando database/sql nativo
 type SessionRepository struct {
 	db *sql.DB
 }
 
-// NewSessionRepository cria um novo repositório
 func NewSessionRepository(db *sql.DB) *SessionRepository {
 	return &SessionRepository{db: db}
 }
 
-// Create cria uma nova sessão
 func (r *SessionRepository) Create(ctx context.Context, session *model.Session) error {
 	query := `
 		INSERT INTO sessions (
@@ -46,7 +43,6 @@ func (r *SessionRepository) Create(ctx context.Context, session *model.Session) 
 	return nil
 }
 
-// GetByID busca sessão por ID (UUID)
 func (r *SessionRepository) GetByID(ctx context.Context, id string) (*model.Session, error) {
 	query := `
 		SELECT
@@ -75,7 +71,6 @@ func (r *SessionRepository) GetByID(ctx context.Context, id string) (*model.Sess
 	return session, nil
 }
 
-// GetByDeviceJID busca sessão por Device JID
 func (r *SessionRepository) GetByDeviceJID(ctx context.Context, deviceJID string) (*model.Session, error) {
 	query := `
 		SELECT
@@ -104,7 +99,6 @@ func (r *SessionRepository) GetByDeviceJID(ctx context.Context, deviceJID string
 	return session, nil
 }
 
-// List lista todas as sessões
 func (r *SessionRepository) List(ctx context.Context) ([]*model.Session, error) {
 	query := `
 		SELECT
@@ -144,7 +138,6 @@ func (r *SessionRepository) List(ctx context.Context) ([]*model.Session, error) 
 	return sessions, nil
 }
 
-// ListConnected lista sessões conectadas
 func (r *SessionRepository) ListConnected(ctx context.Context) ([]*model.Session, error) {
 	query := `
 		SELECT
@@ -185,7 +178,6 @@ func (r *SessionRepository) ListConnected(ctx context.Context) ([]*model.Session
 	return sessions, nil
 }
 
-// Update atualiza uma sessão
 func (r *SessionRepository) Update(ctx context.Context, session *model.Session) error {
 	query := `
 		UPDATE sessions SET
@@ -224,7 +216,6 @@ func (r *SessionRepository) Update(ctx context.Context, session *model.Session) 
 	return nil
 }
 
-// Delete deleta uma sessão permanentemente
 func (r *SessionRepository) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM sessions WHERE id = $1`
 
@@ -245,7 +236,6 @@ func (r *SessionRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// UpdateStatus atualiza o status e flag de conexão da sessão
 func (r *SessionRepository) UpdateStatus(ctx context.Context, id string, status string, connected bool) error {
 	query := `
 		UPDATE sessions
@@ -270,7 +260,6 @@ func (r *SessionRepository) UpdateStatus(ctx context.Context, id string, status 
 	return nil
 }
 
-// Count retorna o total de sessões
 func (r *SessionRepository) Count(ctx context.Context) (int, error) {
 	query := `SELECT COUNT(*) FROM sessions`
 

@@ -10,13 +10,11 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-// EventHandler gerencia eventos do WhatsApp
 type EventHandler struct {
 	manager     *SessionManager
 	sessionRepo *repository.SessionRepository
 }
 
-// NewEventHandler cria um novo handler de eventos
 func NewEventHandler(manager *SessionManager, sessionRepo *repository.SessionRepository) *EventHandler {
 	return &EventHandler{
 		manager:     manager,
@@ -24,14 +22,12 @@ func NewEventHandler(manager *SessionManager, sessionRepo *repository.SessionRep
 	}
 }
 
-// RegisterHandlers registra os handlers de eventos para um cliente
 func (h *EventHandler) RegisterHandlers(client *whatsmeow.Client, sessionID string) {
 	client.AddEventHandler(func(evt interface{}) {
 		h.handleEvent(sessionID, evt)
 	})
 }
 
-// handleEvent processa eventos do WhatsApp
 func (h *EventHandler) handleEvent(sessionID string, evt interface{}) {
 	switch v := evt.(type) {
 	case *events.Connected:
@@ -53,7 +49,6 @@ func (h *EventHandler) handleEvent(sessionID string, evt interface{}) {
 	}
 }
 
-// handleConnected processa evento de conexão
 func (h *EventHandler) handleConnected(sessionID string, _ *events.Connected) {
 	logger.Log.Info().
 		Str("session_id", sessionID).
@@ -72,7 +67,6 @@ func (h *EventHandler) handleConnected(sessionID string, _ *events.Connected) {
 	// TODO: Enviar webhook de conexão
 }
 
-// handleDisconnected processa evento de desconexão
 func (h *EventHandler) handleDisconnected(sessionID string, _ *events.Disconnected) {
 	logger.Log.Warn().
 		Str("session_id", sessionID).
@@ -91,7 +85,6 @@ func (h *EventHandler) handleDisconnected(sessionID string, _ *events.Disconnect
 	// TODO: Enviar webhook de desconexão
 }
 
-// handleLoggedOut processa evento de logout
 func (h *EventHandler) handleLoggedOut(sessionID string, evt *events.LoggedOut) {
 	logger.Log.Warn().
 		Str("session_id", sessionID).
@@ -119,7 +112,6 @@ func (h *EventHandler) handleLoggedOut(sessionID string, evt *events.LoggedOut) 
 	// TODO: Enviar webhook de logout
 }
 
-// handleMessage processa mensagens recebidas
 func (h *EventHandler) handleMessage(sessionID string, evt *events.Message) {
 	logger.Log.Debug().
 		Str("session_id", sessionID).
@@ -130,7 +122,6 @@ func (h *EventHandler) handleMessage(sessionID string, evt *events.Message) {
 	// TODO: Processar mensagem e enviar webhook
 }
 
-// handleReceipt processa recibos de mensagem
 func (h *EventHandler) handleReceipt(sessionID string, evt *events.Receipt) {
 	logger.Log.Debug().
 		Str("session_id", sessionID).
@@ -140,7 +131,6 @@ func (h *EventHandler) handleReceipt(sessionID string, evt *events.Receipt) {
 	// TODO: Processar recibo e enviar webhook
 }
 
-// handlePresence processa eventos de presença
 func (h *EventHandler) handlePresence(sessionID string, evt *events.Presence) {
 	logger.Log.Debug().
 		Str("session_id", sessionID).
@@ -150,7 +140,6 @@ func (h *EventHandler) handlePresence(sessionID string, evt *events.Presence) {
 	// TODO: Processar presença e enviar webhook
 }
 
-// handleHistorySync processa sincronização de histórico
 func (h *EventHandler) handleHistorySync(sessionID string, evt *events.HistorySync) {
 	logger.Log.Info().
 		Str("session_id", sessionID).
@@ -160,7 +149,6 @@ func (h *EventHandler) handleHistorySync(sessionID string, evt *events.HistorySy
 	// TODO: Processar histórico
 }
 
-// handlePushName processa atualização de nome
 func (h *EventHandler) handlePushName(sessionID string, evt *events.PushName) {
 	logger.Log.Info().
 		Str("session_id", sessionID).

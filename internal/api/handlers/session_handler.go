@@ -11,13 +11,11 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-// SessionHandler gerencia requisições HTTP de sessões
 type SessionHandler struct {
 	sessionManager *service.SessionManager
 	pairingService *service.PairingService
 }
 
-// NewSessionHandler cria um novo handler de sessões
 func NewSessionHandler(sessionManager *service.SessionManager, pairingService *service.PairingService) *SessionHandler {
 	return &SessionHandler{
 		sessionManager: sessionManager,
@@ -25,7 +23,6 @@ func NewSessionHandler(sessionManager *service.SessionManager, pairingService *s
 	}
 }
 
-// CreateSession cria uma nova sessão
 // @Summary Criar nova sessão
 // @Description Cria uma nova sessão do WhatsApp com nome e webhook opcional
 // @Tags Sessions
@@ -92,7 +89,6 @@ func (h *SessionHandler) CreateSession(c *gin.Context) {
 	c.JSON(http.StatusCreated, toSessionResponse(session))
 }
 
-// GetSessions lista todas as sessões
 // @Summary Listar sessões
 // @Description Retorna a lista de todas as sessões criadas
 // @Tags Sessions
@@ -123,7 +119,6 @@ func (h *SessionHandler) GetSessions(c *gin.Context) {
 	})
 }
 
-// GetSession obtém detalhes de uma sessão
 // @Summary Obter detalhes da sessão
 // @Description Retorna informações detalhadas de uma sessão específica
 // @Tags Sessions
@@ -149,7 +144,6 @@ func (h *SessionHandler) GetSession(c *gin.Context) {
 	c.JSON(http.StatusOK, toSessionResponse(session))
 }
 
-// DeleteSession deleta uma sessão
 // @Summary Deletar sessão
 // @Description Remove uma sessão e todos os seus dados associados
 // @Tags Sessions
@@ -178,7 +172,6 @@ func (h *SessionHandler) DeleteSession(c *gin.Context) {
 	})
 }
 
-// ConnectSession conecta uma sessão ao WhatsApp
 // @Summary Conectar sessão
 // @Description Inicia a conexão de uma sessão com o WhatsApp
 // @Tags Sessions
@@ -207,7 +200,6 @@ func (h *SessionHandler) ConnectSession(c *gin.Context) {
 	})
 }
 
-// DisconnectSession desconecta uma sessão
 // @Summary Desconectar sessão
 // @Description Desconecta uma sessão ativa do WhatsApp
 // @Tags Sessions
@@ -236,7 +228,6 @@ func (h *SessionHandler) DisconnectSession(c *gin.Context) {
 	})
 }
 
-// PairPhone inicia pareamento com número de telefone
 // @Summary Parear com telefone
 // @Description Gera um código de pareamento para conectar o WhatsApp usando número de telefone
 // @Tags Sessions
@@ -279,7 +270,6 @@ func (h *SessionHandler) PairPhone(c *gin.Context) {
 	})
 }
 
-// GetSessionStatus obtém status detalhado da sessão
 // @Summary Obter status da sessão
 // @Description Retorna informações detalhadas sobre o status de conexão da sessão
 // @Tags Sessions
@@ -305,7 +295,6 @@ func (h *SessionHandler) GetSessionStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, status)
 }
 
-// UpdateSessionWebhook atualiza configurações de webhook
 // @Summary Atualizar webhook
 // @Description Atualiza a URL e eventos do webhook de uma sessão
 // @Tags Sessions
@@ -353,7 +342,6 @@ func (h *SessionHandler) UpdateSessionWebhook(c *gin.Context) {
 	})
 }
 
-// toSessionResponse converte model.Session para dto.SessionResponse
 func toSessionResponse(session *model.Session) dto.SessionResponse {
 	var webhookURL string
 	var webhookEvents []string

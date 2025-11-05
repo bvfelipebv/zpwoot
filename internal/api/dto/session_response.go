@@ -2,7 +2,6 @@ package dto
 
 import "time"
 
-// SessionResponse - Resposta padrão de sessão
 type SessionResponse struct {
 	ID               string     `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Name             string     `json:"name" example:"Minha Sessão WhatsApp"`
@@ -19,13 +18,11 @@ type SessionResponse struct {
 	UpdatedAt        time.Time  `json:"updated_at" example:"2025-11-05T18:30:00Z"`
 }
 
-// SessionListResponse - Lista de sessões
 type SessionListResponse struct {
 	Sessions []SessionResponse `json:"sessions"`
 	Total    int               `json:"total" example:"3"`
 }
 
-// SessionStatusResponse - Status detalhado da sessão
 type SessionStatusResponse struct {
 	ID             string     `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Status         string     `json:"status" example:"connected"`
@@ -40,7 +37,6 @@ type SessionStatusResponse struct {
 	CanConnect     bool       `json:"can_connect" example:"true"`
 }
 
-// PairQRResponse - Resposta com QR code
 type PairQRResponse struct {
 	SessionID string    `json:"session_id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	QRCode    string    `json:"qr_code" example:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."` // Base64 data URL
@@ -48,7 +44,6 @@ type PairQRResponse struct {
 	Message   string    `json:"message" example:"Scan the QR code with your WhatsApp"`
 }
 
-// PairPhoneResponse - Resposta de pareamento por telefone
 type PairPhoneResponse struct {
 	SessionID   string `json:"session_id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	PhoneNumber string `json:"phone_number" example:"+5511999999999"`
@@ -56,14 +51,12 @@ type PairPhoneResponse struct {
 	Message     string `json:"message" example:"Enter the pairing code on your phone"`
 }
 
-// ErrorResponse - Resposta de erro padrão
 type ErrorResponse struct {
 	Error   string                 `json:"error" example:"invalid_request"`
 	Message string                 `json:"message" example:"Nome da sessão é obrigatório"`
 	Details map[string]interface{} `json:"details,omitempty" swaggertype:"object"`
 }
 
-// SuccessResponse - Resposta de sucesso genérica
 type SuccessResponse struct {
 	Success bool        `json:"success" example:"true"`
 	Message string      `json:"message" example:"Operação realizada com sucesso"`

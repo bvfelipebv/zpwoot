@@ -11,11 +11,8 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-// DB é a conexão global do banco de dados
-// Usamos database/sql nativo (mesma abordagem do whatsmeow)
 var DB *sql.DB
 
-// InitDB inicializa a conexão com o banco de dados
 func InitDB() error {
 	dsn := config.GetDatabaseDSN()
 	driver := config.AppConfig.DatabaseDriver
@@ -50,7 +47,6 @@ func InitDB() error {
 	return nil
 }
 
-// Close fecha a conexão com o banco de dados
 func Close() error {
 	if DB != nil {
 		return DB.Close()
