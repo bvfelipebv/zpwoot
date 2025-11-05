@@ -73,30 +73,23 @@ curl http://localhost:8080/health
 # Iniciar PostgreSQL
 docker-compose up -d postgres
 
-# Iniciar DBGate (interface moderna - recomendado)
+# Iniciar DBGate (interface web para gerenciar o banco)
 docker-compose up -d dbgate
 # Acesse: http://localhost:3000
-
-# Iniciar pgAdmin (interface tradicional - opcional)
-docker-compose up -d pgadmin
-# Acesse: http://localhost:5050
 
 # Iniciar todos os serviços
 docker-compose up -d
 ```
 
-### Interfaces de Gerenciamento
+### Interface de Gerenciamento
 
-**DBGate** (Recomendado) - http://localhost:3000
+**DBGate** - http://localhost:3000
 - ✅ Interface moderna e intuitiva
 - ✅ Conexão pré-configurada automaticamente
 - ✅ Query builder visual
 - ✅ Importação/exportação de dados
+- ✅ Suporte a múltiplos bancos de dados
 - ✅ Sem necessidade de configuração manual
-
-**pgAdmin** (Tradicional) - http://localhost:5050
-- Interface clássica do PostgreSQL
-- Login: admin@zpmeow.local / admin
 
 ## 🔌 API Endpoints
 
