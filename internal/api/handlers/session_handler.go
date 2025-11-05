@@ -28,6 +28,7 @@ func NewSessionHandler(sessionManager *service.SessionManager, pairingService *s
 
 // CreateSession cria uma nova sessão
 // @Summary Criar nova sessão
+// @Description Cria uma nova sessão do WhatsApp com nome e webhook opcional
 // @Tags Sessions
 // @Accept json
 // @Produce json
@@ -35,6 +36,9 @@ func NewSessionHandler(sessionManager *service.SessionManager, pairingService *s
 // @Success 201 {object} dto.SessionResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
+// @Security BearerAuth
+// @Security ApiKeyAuth
+// @Security ApiKeyQuery
 // @Router /sessions/create [post]
 func (h *SessionHandler) CreateSession(c *gin.Context) {
 	var req dto.CreateSessionRequest
@@ -61,10 +65,14 @@ func (h *SessionHandler) CreateSession(c *gin.Context) {
 
 // GetSessions lista todas as sessões
 // @Summary Listar sessões
+// @Description Retorna a lista de todas as sessões criadas
 // @Tags Sessions
 // @Produce json
 // @Success 200 {object} dto.SessionListResponse
 // @Failure 500 {object} dto.ErrorResponse
+// @Security BearerAuth
+// @Security ApiKeyAuth
+// @Security ApiKeyQuery
 // @Router /sessions/list [get]
 func (h *SessionHandler) GetSessions(c *gin.Context) {
 	sessions, err := h.sessionManager.ListSessions(c.Request.Context())
@@ -90,12 +98,16 @@ func (h *SessionHandler) GetSessions(c *gin.Context) {
 
 // GetSession obtém detalhes de uma sessão
 // @Summary Obter detalhes da sessão
+// @Description Retorna informações detalhadas de uma sessão específica
 // @Tags Sessions
 // @Produce json
 // @Param id path string true "Session ID"
 // @Success 200 {object} dto.SessionResponse
 // @Failure 404 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
+// @Security BearerAuth
+// @Security ApiKeyAuth
+// @Security ApiKeyQuery
 // @Router /sessions/{id}/info [get]
 func (h *SessionHandler) GetSession(c *gin.Context) {
 	sessionID := c.Param("id")
@@ -114,12 +126,16 @@ func (h *SessionHandler) GetSession(c *gin.Context) {
 
 // DeleteSession deleta uma sessão
 // @Summary Deletar sessão
+// @Description Remove uma sessão e todos os seus dados associados
 // @Tags Sessions
 // @Produce json
 // @Param id path string true "Session ID"
 // @Success 200 {object} dto.SuccessResponse
 // @Failure 404 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
+// @Security BearerAuth
+// @Security ApiKeyAuth
+// @Security ApiKeyQuery
 // @Router /sessions/{id}/delete [delete]
 func (h *SessionHandler) DeleteSession(c *gin.Context) {
 	sessionID := c.Param("id")
@@ -141,12 +157,16 @@ func (h *SessionHandler) DeleteSession(c *gin.Context) {
 
 // ConnectSession conecta uma sessão ao WhatsApp
 // @Summary Conectar sessão
+// @Description Inicia a conexão de uma sessão com o WhatsApp
 // @Tags Sessions
 // @Produce json
 // @Param id path string true "Session ID"
 // @Success 200 {object} dto.SuccessResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
+// @Security BearerAuth
+// @Security ApiKeyAuth
+// @Security ApiKeyQuery
 // @Router /sessions/{id}/connect [post]
 func (h *SessionHandler) ConnectSession(c *gin.Context) {
 	sessionID := c.Param("id")
@@ -168,12 +188,16 @@ func (h *SessionHandler) ConnectSession(c *gin.Context) {
 
 // DisconnectSession desconecta uma sessão
 // @Summary Desconectar sessão
+// @Description Desconecta uma sessão ativa do WhatsApp
 // @Tags Sessions
 // @Produce json
 // @Param id path string true "Session ID"
 // @Success 200 {object} dto.SuccessResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
+// @Security BearerAuth
+// @Security ApiKeyAuth
+// @Security ApiKeyQuery
 // @Router /sessions/{id}/disconnect [post]
 func (h *SessionHandler) DisconnectSession(c *gin.Context) {
 	sessionID := c.Param("id")
@@ -195,6 +219,7 @@ func (h *SessionHandler) DisconnectSession(c *gin.Context) {
 
 // PairPhone inicia pareamento com número de telefone
 // @Summary Parear com telefone
+// @Description Gera um código de pareamento para conectar o WhatsApp usando número de telefone
 // @Tags Sessions
 // @Accept json
 // @Produce json
@@ -203,6 +228,9 @@ func (h *SessionHandler) DisconnectSession(c *gin.Context) {
 // @Success 200 {object} dto.PairPhoneResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
+// @Security BearerAuth
+// @Security ApiKeyAuth
+// @Security ApiKeyQuery
 // @Router /sessions/{id}/pair [post]
 func (h *SessionHandler) PairPhone(c *gin.Context) {
 	sessionID := c.Param("id")
@@ -236,12 +264,16 @@ func (h *SessionHandler) PairPhone(c *gin.Context) {
 
 // GetSessionStatus obtém status detalhado da sessão
 // @Summary Obter status da sessão
+// @Description Retorna informações detalhadas sobre o status de conexão da sessão
 // @Tags Sessions
 // @Produce json
 // @Param id path string true "Session ID"
 // @Success 200 {object} dto.SessionStatusResponse
 // @Failure 404 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
+// @Security BearerAuth
+// @Security ApiKeyAuth
+// @Security ApiKeyQuery
 // @Router /sessions/{id}/status [get]
 func (h *SessionHandler) GetSessionStatus(c *gin.Context) {
 	sessionID := c.Param("id")
@@ -260,6 +292,7 @@ func (h *SessionHandler) GetSessionStatus(c *gin.Context) {
 
 // UpdateSessionWebhook atualiza configurações de webhook
 // @Summary Atualizar webhook
+// @Description Atualiza a URL e eventos do webhook de uma sessão
 // @Tags Sessions
 // @Accept json
 // @Produce json
@@ -268,6 +301,9 @@ func (h *SessionHandler) GetSessionStatus(c *gin.Context) {
 // @Success 200 {object} dto.SuccessResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
+// @Security BearerAuth
+// @Security ApiKeyAuth
+// @Security ApiKeyQuery
 // @Router /sessions/{id}/webhook [put]
 func (h *SessionHandler) UpdateSessionWebhook(c *gin.Context) {
 	sessionID := c.Param("id")

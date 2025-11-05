@@ -17,7 +17,40 @@ import (
 	"zpwoot/internal/repository"
 	"zpwoot/internal/service"
 	"zpwoot/pkg/logger"
+
+	_ "zpwoot/docs" // Importa a documentação gerada pelo swag
 )
+
+// @title           ZPWoot - WhatsApp Multi-Device API
+// @version         1.0
+// @description     API REST para gerenciamento de múltiplas sessões do WhatsApp usando whatsmeow
+// @description     Permite criar, conectar e gerenciar sessões do WhatsApp via API
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  MIT
+// @license.url   https://opensource.org/licenses/MIT
+
+// @host      localhost:8080
+// @BasePath  /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Digite "Bearer" seguido do seu token de API
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-API-Key
+// @description Token de autenticação da API
+
+// @securityDefinitions.apikey ApiKeyQuery
+// @in query
+// @name api_key
+// @description Token de autenticação da API via query parameter
 
 func main() {
 	// Initialize logger

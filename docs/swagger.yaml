@@ -1,0 +1,461 @@
+basePath: /
+definitions:
+  dto.CreateSessionRequest:
+    properties:
+      metadata:
+        additionalProperties: true
+        type: object
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      webhook_events:
+        items:
+          type: string
+        type: array
+      webhook_url:
+        type: string
+    required:
+    - name
+    type: object
+  dto.ErrorResponse:
+    properties:
+      details:
+        additionalProperties: true
+        type: object
+      error:
+        type: string
+      message:
+        type: string
+    type: object
+  dto.PairPhoneRequest:
+    properties:
+      phone_number:
+        description: 'Formato: +5511999999999'
+        type: string
+    required:
+    - phone_number
+    type: object
+  dto.PairPhoneResponse:
+    properties:
+      message:
+        type: string
+      pairing_code:
+        type: string
+      phone_number:
+        type: string
+      session_id:
+        type: string
+    type: object
+  dto.SessionListResponse:
+    properties:
+      sessions:
+        items:
+          $ref: '#/definitions/dto.SessionResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.SessionResponse:
+    properties:
+      business_name:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      jid:
+        type: string
+      last_connected:
+        type: string
+      last_disconnected:
+        type: string
+      name:
+        type: string
+      platform:
+        type: string
+      push_name:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+      webhook_events:
+        items:
+          type: string
+        type: array
+      webhook_url:
+        type: string
+    type: object
+  dto.SessionStatusResponse:
+    properties:
+      can_connect:
+        type: boolean
+      connection_time:
+        description: Duração formatada
+        type: string
+      id:
+        type: string
+      is_connected:
+        type: boolean
+      is_logged_in:
+        type: boolean
+      jid:
+        type: string
+      last_connected:
+        type: string
+      needs_pairing:
+        type: boolean
+      platform:
+        type: string
+      push_name:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.SuccessResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.UpdateWebhookRequest:
+    properties:
+      webhook_events:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      webhook_secret:
+        minLength: 16
+        type: string
+      webhook_url:
+        type: string
+    required:
+    - webhook_events
+    - webhook_url
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: |-
+    API REST para gerenciamento de múltiplas sessões do WhatsApp usando whatsmeow
+    Permite criar, conectar e gerenciar sessões do WhatsApp via API
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: ZPWoot - WhatsApp Multi-Device API
+  version: "1.0"
+paths:
+  /sessions/{id}/connect:
+    post:
+      description: Inicia a conexão de uma sessão com o WhatsApp
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      - ApiKeyQuery: []
+      summary: Conectar sessão
+      tags:
+      - Sessions
+  /sessions/{id}/delete:
+    delete:
+      description: Remove uma sessão e todos os seus dados associados
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SuccessResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      - ApiKeyQuery: []
+      summary: Deletar sessão
+      tags:
+      - Sessions
+  /sessions/{id}/disconnect:
+    post:
+      description: Desconecta uma sessão ativa do WhatsApp
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      - ApiKeyQuery: []
+      summary: Desconectar sessão
+      tags:
+      - Sessions
+  /sessions/{id}/info:
+    get:
+      description: Retorna informações detalhadas de uma sessão específica
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SessionResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      - ApiKeyQuery: []
+      summary: Obter detalhes da sessão
+      tags:
+      - Sessions
+  /sessions/{id}/pair:
+    post:
+      consumes:
+      - application/json
+      description: Gera um código de pareamento para conectar o WhatsApp usando número
+        de telefone
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Número de telefone
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PairPhoneRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PairPhoneResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      - ApiKeyQuery: []
+      summary: Parear com telefone
+      tags:
+      - Sessions
+  /sessions/{id}/status:
+    get:
+      description: Retorna informações detalhadas sobre o status de conexão da sessão
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SessionStatusResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      - ApiKeyQuery: []
+      summary: Obter status da sessão
+      tags:
+      - Sessions
+  /sessions/{id}/webhook:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza a URL e eventos do webhook de uma sessão
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Configurações de webhook
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateWebhookRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      - ApiKeyQuery: []
+      summary: Atualizar webhook
+      tags:
+      - Sessions
+  /sessions/create:
+    post:
+      consumes:
+      - application/json
+      description: Cria uma nova sessão do WhatsApp com nome e webhook opcional
+      parameters:
+      - description: Dados da sessão
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateSessionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.SessionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      - ApiKeyQuery: []
+      summary: Criar nova sessão
+      tags:
+      - Sessions
+  /sessions/list:
+    get:
+      description: Retorna a lista de todas as sessões criadas
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SessionListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      - ApiKeyQuery: []
+      summary: Listar sessões
+      tags:
+      - Sessions
+securityDefinitions:
+  ApiKeyAuth:
+    description: Token de autenticação da API
+    in: header
+    name: X-API-Key
+    type: apiKey
+  ApiKeyQuery:
+    description: Token de autenticação da API via query parameter
+    in: query
+    name: api_key
+    type: apiKey
+  BearerAuth:
+    description: Digite "Bearer" seguido do seu token de API
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

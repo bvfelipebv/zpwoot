@@ -91,6 +91,33 @@ docker-compose up -d
 - ✅ Suporte a múltiplos bancos de dados
 - ✅ Sem necessidade de configuração manual
 
+## 📚 Documentação da API (Swagger)
+
+A documentação interativa da API está disponível via Swagger UI:
+
+```
+http://localhost:8080/swagger/index.html
+```
+
+### Recursos do Swagger:
+- ✅ Documentação completa de todos os endpoints
+- ✅ Teste interativo de APIs diretamente no navegador
+- ✅ Exemplos de requisições e respostas
+- ✅ Modelos de dados detalhados
+- ✅ Autenticação integrada (Bearer Token, API Key)
+
+### Regenerar Documentação Swagger
+
+Se você fizer alterações nos handlers ou adicionar novos endpoints:
+
+```bash
+# Instalar swag CLI (se ainda não tiver)
+go install github.com/swaggo/swag/cmd/swag@latest
+
+# Regenerar documentação
+swag init -g cmd/zpwoot/main.go --output docs
+```
+
 ## 🔌 API Endpoints
 
 ### Health Check (Sem Autenticação)
@@ -100,15 +127,15 @@ GET /health
 
 ### Sessões (Requer Autenticação)
 
-- `POST /api/sessions/create` - Criar sessão
-- `GET /api/sessions/list` - Listar sessões
-- `GET /api/sessions/:id/info` - Detalhes
-- `GET /api/sessions/:id/status` - Status detalhado
-- `POST /api/sessions/:id/connect` - Conectar
-- `POST /api/sessions/:id/disconnect` - Desconectar
-- `POST /api/sessions/:id/pair` - Parear com telefone
-- `PUT /api/sessions/:id/webhook` - Atualizar webhook
-- `DELETE /api/sessions/:id/delete` - Deletar
+- `POST /sessions/create` - Criar sessão
+- `GET /sessions/list` - Listar sessões
+- `GET /sessions/:id/info` - Detalhes
+- `GET /sessions/:id/status` - Status detalhado
+- `POST /sessions/:id/connect` - Conectar
+- `POST /sessions/:id/disconnect` - Desconectar
+- `POST /sessions/:id/pair` - Parear com telefone
+- `PUT /sessions/:id/webhook` - Atualizar webhook
+- `DELETE /sessions/:id/delete` - Deletar
 
 ## 🔐 Autenticação
 
