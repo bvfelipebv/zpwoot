@@ -321,7 +321,32 @@ func (h *MessageHandler) SendMedia(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Router /sessions/{id}/message/contact [post]
 func (h *MessageHandler) SendContact(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, dto.ErrorResponse{Error: "not_implemented", Message: "Contact not yet implemented"})
+	sessionID := c.Param("id")
+	var req dto.SendContactRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: err.Error()})
+		return
+	}
+
+	if req.Phone == "" || req.ContactPhone == "" || req.ContactName == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "phone, contactPhone and contactName are required"})
+		return
+	}
+
+	client, err := h.sessionManager.GetClient(sessionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "session_not_found", Message: err.Error()})
+		return
+	}
+
+	ctx := context.Background()
+	messageID, timestamp, err := h.sessionManager.SendContact(ctx, client, req.Phone, req.ContactName, req.ContactPhone)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "send_failed", Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.MessageResponse{Success: true, MessageID: messageID, Timestamp: timestamp.Unix(), Phone: req.Phone})
 }
 
 // @Summary Enviar localização
@@ -334,7 +359,32 @@ func (h *MessageHandler) SendContact(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Router /sessions/{id}/message/location [post]
 func (h *MessageHandler) SendLocation(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, dto.ErrorResponse{Error: "not_implemented", Message: "Location not yet implemented"})
+	sessionID := c.Param("id")
+	var req dto.SendLocationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: err.Error()})
+		return
+	}
+
+	if req.Phone == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "phone, latitude and longitude are required"})
+		return
+	}
+
+	client, err := h.sessionManager.GetClient(sessionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "session_not_found", Message: err.Error()})
+		return
+	}
+
+	ctx := context.Background()
+	messageID, timestamp, err := h.sessionManager.SendLocation(ctx, client, req.Phone, req.Latitude, req.Longitude, req.Name, req.Address)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "send_failed", Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.MessageResponse{Success: true, MessageID: messageID, Timestamp: timestamp.Unix(), Phone: req.Phone})
 }
 
 // @Summary Enviar enquete
@@ -347,7 +397,37 @@ func (h *MessageHandler) SendLocation(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Router /sessions/{id}/message/poll [post]
 func (h *MessageHandler) SendPoll(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, dto.ErrorResponse{Error: "not_implemented", Message: "Poll not yet implemented"})
+	sessionID := c.Param("id")
+	var req dto.SendPollRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: err.Error()})
+		return
+	}
+
+	if req.Phone == "" || req.Question == "" || len(req.Options) == 0 {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "phone, question and options are required"})
+		return
+	}
+
+	client, err := h.sessionManager.GetClient(sessionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "session_not_found", Message: err.Error()})
+		return
+	}
+
+	selectableCount := uint32(req.SelectableCount)
+	if selectableCount == 0 {
+		selectableCount = 1
+	}
+
+	ctx := context.Background()
+	messageID, timestamp, err := h.sessionManager.SendPoll(ctx, client, req.Phone, req.Question, req.Options, selectableCount)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "send_failed", Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.MessageResponse{Success: true, MessageID: messageID, Timestamp: timestamp.Unix(), Phone: req.Phone})
 }
 
 // @Summary Enviar reação
@@ -360,7 +440,32 @@ func (h *MessageHandler) SendPoll(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Router /sessions/{id}/message/reaction [post]
 func (h *MessageHandler) SendReaction(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, dto.ErrorResponse{Error: "not_implemented", Message: "Reaction not yet implemented"})
+	sessionID := c.Param("id")
+	var req dto.SendReactionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: err.Error()})
+		return
+	}
+
+	if req.Phone == "" || req.MessageID == "" || req.Emoji == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "phone, messageId and emoji are required"})
+		return
+	}
+
+	client, err := h.sessionManager.GetClient(sessionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "session_not_found", Message: err.Error()})
+		return
+	}
+
+	ctx := context.Background()
+	messageID, timestamp, err := h.sessionManager.SendReaction(ctx, client, req.Phone, req.MessageID, req.Emoji)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "send_failed", Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.MessageResponse{Success: true, MessageID: messageID, Timestamp: timestamp.Unix(), Phone: req.Phone})
 }
 
 // @Summary Enviar presença
@@ -408,7 +513,32 @@ func (h *MessageHandler) SendPresence(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Router /sessions/{id}/message/read [post]
 func (h *MessageHandler) MarkAsRead(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, dto.ErrorResponse{Error: "not_implemented", Message: "Mark as read not yet implemented"})
+	sessionID := c.Param("id")
+	var req dto.MarkAsReadRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: err.Error()})
+		return
+	}
+
+	if req.Phone == "" || len(req.MessageIDs) == 0 {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "phone and messageIds are required"})
+		return
+	}
+
+	client, err := h.sessionManager.GetClient(sessionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "session_not_found", Message: err.Error()})
+		return
+	}
+
+	ctx := context.Background()
+	err = h.sessionManager.MarkAsRead(ctx, client, req.Phone, req.MessageIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "send_failed", Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "count": len(req.MessageIDs)})
 }
 
 // @Summary Revogar mensagem
@@ -421,7 +551,32 @@ func (h *MessageHandler) MarkAsRead(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Router /sessions/{id}/message/revoke [delete]
 func (h *MessageHandler) RevokeMessage(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, dto.ErrorResponse{Error: "not_implemented", Message: "Revoke not yet implemented"})
+	sessionID := c.Param("id")
+	var req dto.RevokeMessageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: err.Error()})
+		return
+	}
+
+	if req.Phone == "" || req.MessageID == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "phone and messageId are required"})
+		return
+	}
+
+	client, err := h.sessionManager.GetClient(sessionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "session_not_found", Message: err.Error()})
+		return
+	}
+
+	ctx := context.Background()
+	messageID, timestamp, err := h.sessionManager.RevokeMessage(ctx, client, req.Phone, req.MessageID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "send_failed", Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.MessageResponse{Success: true, MessageID: messageID, Timestamp: timestamp.Unix(), Phone: req.Phone})
 }
 
 // @Summary Editar mensagem
@@ -434,6 +589,31 @@ func (h *MessageHandler) RevokeMessage(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Router /sessions/{id}/message/edit [put]
 func (h *MessageHandler) EditMessage(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, dto.ErrorResponse{Error: "not_implemented", Message: "Edit not yet implemented"})
+	sessionID := c.Param("id")
+	var req dto.EditMessageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: err.Error()})
+		return
+	}
+
+	if req.Phone == "" || req.MessageID == "" || req.NewMessage == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "phone, messageId and newMessage are required"})
+		return
+	}
+
+	client, err := h.sessionManager.GetClient(sessionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "session_not_found", Message: err.Error()})
+		return
+	}
+
+	ctx := context.Background()
+	messageID, timestamp, err := h.sessionManager.EditMessage(ctx, client, req.Phone, req.MessageID, req.NewMessage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "send_failed", Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.MessageResponse{Success: true, MessageID: messageID, Timestamp: timestamp.Unix(), Phone: req.Phone})
 }
 

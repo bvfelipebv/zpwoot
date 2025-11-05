@@ -119,26 +119,219 @@ func (m *SessionManager) SendAudioMessage(ctx context.Context, client *whatsmeow
 	return resp.ID, resp.Timestamp, nil
 }
 
-// SendImageFromURL envia imagem a partir de URL
+// SendImageFromURL envia imagem a partir de URL ou base64
 func (m *SessionManager) SendImageFromURL(ctx context.Context, client *whatsmeow.Client, phone string, imageURL string, caption string) (string, time.Time, error) {
-	// TODO: Download da imagem da URL
-	// Por enquanto, retornar erro
-	return "", time.Time{}, fmt.Errorf("image from URL not yet implemented")
+	// Download ou decode da imagem
+	imageData, mimeType, err := downloadOrDecodeMedia(imageURL)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to get image: %w", err)
+	}
+
+	// Se não detectou mime type, usar padrão
+	if mimeType == "" {
+		mimeType = "image/jpeg"
+	}
+
+	// Parsear JID do destinatário
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	// Upload da imagem para WhatsApp
+	uploaded, err := client.Upload(ctx, imageData, whatsmeow.MediaImage)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to upload image: %w", err)
+	}
+
+	// Criar mensagem de imagem com todos os campos necessários
+	msg := &waProto.Message{
+		ImageMessage: &waProto.ImageMessage{
+			Caption:       proto.String(caption),
+			URL:           proto.String(uploaded.URL),
+			DirectPath:    proto.String(uploaded.DirectPath),
+			MediaKey:      uploaded.MediaKey,
+			Mimetype:      proto.String(mimeType),
+			FileEncSHA256: uploaded.FileEncSHA256,
+			FileSHA256:    uploaded.FileSHA256,
+			FileLength:    proto.Uint64(uint64(len(imageData))),
+		},
+	}
+
+	// Enviar mensagem
+	resp, err := client.SendMessage(ctx, recipient, msg)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to send image: %w", err)
+	}
+
+	logger.Log.Info().
+		Str("message_id", resp.ID).
+		Str("phone", phone).
+		Int("size", len(imageData)).
+		Str("mime", mimeType).
+		Msg("Image message sent")
+
+	return resp.ID, resp.Timestamp, nil
 }
 
-// SendAudioFromURL envia áudio a partir de URL
+// SendAudioFromURL envia áudio a partir de URL ou base64
 func (m *SessionManager) SendAudioFromURL(ctx context.Context, client *whatsmeow.Client, phone string, audioURL string) (string, time.Time, error) {
-	return "", time.Time{}, fmt.Errorf("audio from URL not yet implemented")
+	// Download ou decode do áudio
+	audioData, mimeType, err := downloadOrDecodeMedia(audioURL)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to get audio: %w", err)
+	}
+
+	// Se não detectou mime type, usar padrão para PTT
+	if mimeType == "" {
+		mimeType = "audio/ogg; codecs=opus"
+	}
+
+	// Parsear JID do destinatário
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	// Upload do áudio para WhatsApp
+	uploaded, err := client.Upload(ctx, audioData, whatsmeow.MediaAudio)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to upload audio: %w", err)
+	}
+
+	// Criar mensagem de áudio com todos os campos necessários
+	msg := &waProto.Message{
+		AudioMessage: &waProto.AudioMessage{
+			URL:           proto.String(uploaded.URL),
+			DirectPath:    proto.String(uploaded.DirectPath),
+			MediaKey:      uploaded.MediaKey,
+			Mimetype:      proto.String(mimeType),
+			FileEncSHA256: uploaded.FileEncSHA256,
+			FileSHA256:    uploaded.FileSHA256,
+			FileLength:    proto.Uint64(uint64(len(audioData))),
+			PTT:           proto.Bool(true), // Push-to-talk (áudio de voz)
+			Seconds:       proto.Uint32(0),  // Duração em segundos (0 = desconhecido)
+		},
+	}
+
+	// Enviar mensagem
+	resp, err := client.SendMessage(ctx, recipient, msg)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to send audio: %w", err)
+	}
+
+	logger.Log.Info().
+		Str("message_id", resp.ID).
+		Str("phone", phone).
+		Int("size", len(audioData)).
+		Str("mime", mimeType).
+		Msg("Audio message sent")
+
+	return resp.ID, resp.Timestamp, nil
 }
 
-// SendVideoFromURL envia vídeo a partir de URL
+// SendVideoFromURL envia vídeo a partir de URL ou base64
 func (m *SessionManager) SendVideoFromURL(ctx context.Context, client *whatsmeow.Client, phone string, videoURL string, caption string) (string, time.Time, error) {
-	return "", time.Time{}, fmt.Errorf("video from URL not yet implemented")
+	// Download ou decode do vídeo
+	videoData, mimeType, err := downloadOrDecodeMedia(videoURL)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to get video: %w", err)
+	}
+
+	// Se não detectou mime type, usar padrão
+	if mimeType == "" {
+		mimeType = "video/mp4"
+	}
+
+	// Parsear JID do destinatário
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	// Upload do vídeo para WhatsApp
+	uploaded, err := client.Upload(ctx, videoData, whatsmeow.MediaVideo)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to upload video: %w", err)
+	}
+
+	// Criar mensagem de vídeo com todos os campos necessários
+	msg := &waProto.Message{
+		VideoMessage: &waProto.VideoMessage{
+			Caption:       proto.String(caption),
+			URL:           proto.String(uploaded.URL),
+			DirectPath:    proto.String(uploaded.DirectPath),
+			MediaKey:      uploaded.MediaKey,
+			Mimetype:      proto.String(mimeType),
+			FileEncSHA256: uploaded.FileEncSHA256,
+			FileSHA256:    uploaded.FileSHA256,
+			FileLength:    proto.Uint64(uint64(len(videoData))),
+			Seconds:       proto.Uint32(0), // Duração em segundos (0 = desconhecido)
+		},
+	}
+
+	// Enviar mensagem
+	resp, err := client.SendMessage(ctx, recipient, msg)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to send video: %w", err)
+	}
+
+	logger.Log.Info().
+		Str("message_id", resp.ID).
+		Str("phone", phone).
+		Int("size", len(videoData)).
+		Str("mime", mimeType).
+		Msg("Video message sent")
+
+	return resp.ID, resp.Timestamp, nil
 }
 
-// SendDocumentFromURL envia documento a partir de URL
+// SendDocumentFromURL envia documento a partir de URL ou base64
 func (m *SessionManager) SendDocumentFromURL(ctx context.Context, client *whatsmeow.Client, phone string, docURL string, fileName string, caption string) (string, time.Time, error) {
-	return "", time.Time{}, fmt.Errorf("document from URL not yet implemented")
+	docData, mimeType, err := downloadOrDecodeMedia(docURL)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to get document: %w", err)
+	}
+
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+
+	if fileName == "" {
+		fileName = "document"
+	}
+
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	uploaded, err := client.Upload(ctx, docData, whatsmeow.MediaDocument)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to upload document: %w", err)
+	}
+
+	msg := &waProto.Message{
+		DocumentMessage: &waProto.DocumentMessage{
+			Caption:       proto.String(caption),
+			FileName:      proto.String(fileName),
+			URL:           proto.String(uploaded.URL),
+			DirectPath:    proto.String(uploaded.DirectPath),
+			MediaKey:      uploaded.MediaKey,
+			Mimetype:      proto.String(mimeType),
+			FileEncSHA256: uploaded.FileEncSHA256,
+			FileSHA256:    uploaded.FileSHA256,
+			FileLength:    proto.Uint64(uint64(len(docData))),
+		},
+	}
+
+	resp, err := client.SendMessage(ctx, recipient, msg)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to send document: %w", err)
+	}
+
+	logger.Log.Info().Str("message_id", resp.ID).Str("phone", phone).Str("fileName", fileName).Msg("Document sent")
+	return resp.ID, resp.Timestamp, nil
 }
 
 // SendPresence envia presença (digitando, gravando, etc)
@@ -179,6 +372,200 @@ func (m *SessionManager) SendPresence(ctx context.Context, client *whatsmeow.Cli
 	}
 
 	return nil
+}
+
+// SendLocation envia localização
+func (m *SessionManager) SendLocation(ctx context.Context, client *whatsmeow.Client, phone string, latitude float64, longitude float64, name string, address string) (string, time.Time, error) {
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	msg := &waProto.Message{
+		LocationMessage: &waProto.LocationMessage{
+			DegreesLatitude:  proto.Float64(latitude),
+			DegreesLongitude: proto.Float64(longitude),
+			Name:             proto.String(name),
+			Address:          proto.String(address),
+		},
+	}
+
+	resp, err := client.SendMessage(ctx, recipient, msg)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to send location: %w", err)
+	}
+
+	logger.Log.Info().Str("message_id", resp.ID).Str("phone", phone).Msg("Location sent")
+	return resp.ID, resp.Timestamp, nil
+}
+
+// SendContact envia contato
+func (m *SessionManager) SendContact(ctx context.Context, client *whatsmeow.Client, phone string, contactName string, contactPhone string) (string, time.Time, error) {
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	// Criar vCard
+	vcard := fmt.Sprintf("BEGIN:VCARD\nVERSION:3.0\nFN:%s\nTEL;type=CELL:+%s\nEND:VCARD", contactName, contactPhone)
+
+	msg := &waProto.Message{
+		ContactMessage: &waProto.ContactMessage{
+			DisplayName: proto.String(contactName),
+			Vcard:       proto.String(vcard),
+		},
+	}
+
+	resp, err := client.SendMessage(ctx, recipient, msg)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to send contact: %w", err)
+	}
+
+	logger.Log.Info().Str("message_id", resp.ID).Str("phone", phone).Msg("Contact sent")
+	return resp.ID, resp.Timestamp, nil
+}
+
+// SendPoll envia enquete
+func (m *SessionManager) SendPoll(ctx context.Context, client *whatsmeow.Client, phone string, question string, options []string, selectableCount uint32) (string, time.Time, error) {
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	// Criar opções da enquete
+	pollOptions := make([]*waProto.PollCreationMessage_Option, len(options))
+	for i, opt := range options {
+		pollOptions[i] = &waProto.PollCreationMessage_Option{
+			OptionName: proto.String(opt),
+		}
+	}
+
+	msg := &waProto.Message{
+		PollCreationMessage: &waProto.PollCreationMessage{
+			Name:                   proto.String(question),
+			Options:                pollOptions,
+			SelectableOptionsCount: proto.Uint32(selectableCount),
+		},
+	}
+
+	resp, err := client.SendMessage(ctx, recipient, msg)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to send poll: %w", err)
+	}
+
+	logger.Log.Info().Str("message_id", resp.ID).Str("phone", phone).Msg("Poll sent")
+	return resp.ID, resp.Timestamp, nil
+}
+
+// SendReaction envia reação a uma mensagem
+func (m *SessionManager) SendReaction(ctx context.Context, client *whatsmeow.Client, phone string, messageID string, emoji string) (string, time.Time, error) {
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	msg := &waProto.Message{
+		ReactionMessage: &waProto.ReactionMessage{
+			Key: &waProto.MessageKey{
+				RemoteJID: proto.String(recipient.String()),
+				FromMe:    proto.Bool(false),
+				ID:        proto.String(messageID),
+			},
+			Text:              proto.String(emoji),
+			SenderTimestampMS: proto.Int64(time.Now().UnixMilli()),
+		},
+	}
+
+	resp, err := client.SendMessage(ctx, recipient, msg)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to send reaction: %w", err)
+	}
+
+	logger.Log.Info().Str("message_id", resp.ID).Str("phone", phone).Str("emoji", emoji).Msg("Reaction sent")
+	return resp.ID, resp.Timestamp, nil
+}
+
+// MarkAsRead marca mensagens como lidas
+func (m *SessionManager) MarkAsRead(ctx context.Context, client *whatsmeow.Client, phone string, messageIDs []string) error {
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	// Criar array de IDs
+	ids := make([]types.MessageID, len(messageIDs))
+	for i, id := range messageIDs {
+		ids[i] = types.MessageID(id)
+	}
+
+	err = client.MarkRead(ids, time.Now(), recipient, recipient)
+	if err != nil {
+		return fmt.Errorf("failed to mark as read: %w", err)
+	}
+
+	logger.Log.Info().Str("phone", phone).Int("count", len(messageIDs)).Msg("Messages marked as read")
+	return nil
+}
+
+// RevokeMessage revoga uma mensagem enviada
+func (m *SessionManager) RevokeMessage(ctx context.Context, client *whatsmeow.Client, phone string, messageID string) (string, time.Time, error) {
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	msg := &waProto.Message{
+		ProtocolMessage: &waProto.ProtocolMessage{
+			Type: waProto.ProtocolMessage_REVOKE.Enum(),
+			Key: &waProto.MessageKey{
+				RemoteJID: proto.String(recipient.String()),
+				FromMe:    proto.Bool(true),
+				ID:        proto.String(messageID),
+			},
+		},
+	}
+
+	resp, err := client.SendMessage(ctx, recipient, msg)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to revoke message: %w", err)
+	}
+
+	logger.Log.Info().Str("message_id", messageID).Str("phone", phone).Msg("Message revoked")
+	return resp.ID, resp.Timestamp, nil
+}
+
+// EditMessage edita uma mensagem enviada
+func (m *SessionManager) EditMessage(ctx context.Context, client *whatsmeow.Client, phone string, messageID string, newText string) (string, time.Time, error) {
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	msg := &waProto.Message{
+		EditedMessage: &waProto.FutureProofMessage{
+			Message: &waProto.Message{
+				Conversation: proto.String(newText),
+			},
+		},
+		ProtocolMessage: &waProto.ProtocolMessage{
+			Key: &waProto.MessageKey{
+				RemoteJID: proto.String(recipient.String()),
+				FromMe:    proto.Bool(true),
+				ID:        proto.String(messageID),
+			},
+			Type:                waProto.ProtocolMessage_MESSAGE_EDIT.Enum(),
+			EditedMessage:       &waProto.Message{Conversation: proto.String(newText)},
+			TimestampMS:         proto.Int64(time.Now().UnixMilli()),
+		},
+	}
+
+	resp, err := client.SendMessage(ctx, recipient, msg)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to edit message: %w", err)
+	}
+
+	logger.Log.Info().Str("message_id", messageID).Str("phone", phone).Msg("Message edited")
+	return resp.ID, resp.Timestamp, nil
 }
 
 // parseJID converte um número de telefone em JID do WhatsApp
