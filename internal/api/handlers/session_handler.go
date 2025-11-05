@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -48,8 +47,40 @@ func (h *SessionHandler) CreateSession(c *gin.Context) {
 		return
 	}
 
-	session, err := h.sessionManager.CreateSession(c.Request.Context(), req.Name, req.WebhookURL)
-	if err != nil {
+	// Converter DTOs para model
+	var proxyConfig *model.ProxyConfig
+	if req.Proxy != nil {
+		proxyConfig = &model.ProxyConfig{
+			Enabled:  req.Proxy.Enabled,
+			Protocol: req.Proxy.Protocol,
+			Host:     req.Proxy.Host,
+			Port:     req.Proxy.Port,
+			Username: req.Proxy.Username,
+			Password: req.Proxy.Password,
+		}
+	}
+
+	var webhookConfig *model.WebhookConfig
+	if req.Webhook != nil {
+		webhookConfig = &model.WebhookConfig{
+			Enabled: req.Webhook.Enabled,
+			URL:     req.Webhook.URL,
+			Events:  req.Webhook.Events,
+			Token:   req.Webhook.Token,
+		}
+	}
+
+	// Criar sessão
+	session := &model.Session{
+		Name:          req.Name,
+		Status:        string(model.SessionStatusDisconnected),
+		Connected:     false,
+		ProxyConfig:   proxyConfig,
+		WebhookConfig: webhookConfig,
+		APIKey:        req.APIKey,
+	}
+
+	if err := h.sessionManager.CreateSessionWithConfig(c.Request.Context(), session); err != nil {
 		logger.Log.Error().Err(err).Msg("Failed to create session")
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Error:   "create_failed",
@@ -299,17 +330,15 @@ func (h *SessionHandler) UpdateSessionWebhook(c *gin.Context) {
 		return
 	}
 
-	// Converter webhook_events para string JSON
-	webhookEventsJSON, err := json.Marshal(req.WebhookEvents)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Error:   "invalid_webhook_events",
-			Message: err.Error(),
-		})
-		return
+	// Converter DTO para model
+	webhookConfig := &model.WebhookConfig{
+		Enabled: req.Webhook.Enabled,
+		URL:     req.Webhook.URL,
+		Events:  req.Webhook.Events,
+		Token:   req.Webhook.Token,
 	}
 
-	if err := h.sessionManager.UpdateWebhook(c.Request.Context(), sessionID, req.WebhookURL, string(webhookEventsJSON)); err != nil {
+	if err := h.sessionManager.UpdateWebhookConfig(c.Request.Context(), sessionID, webhookConfig); err != nil {
 		logger.Log.Error().Err(err).Str("session_id", sessionID).Msg("Failed to update webhook")
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Error:   "update_failed",
@@ -326,10 +355,12 @@ func (h *SessionHandler) UpdateSessionWebhook(c *gin.Context) {
 
 // toSessionResponse converte model.Session para dto.SessionResponse
 func toSessionResponse(session *model.Session) dto.SessionResponse {
-	// Deserializar webhook_events se necessário
+	var webhookURL string
 	var webhookEvents []string
-	if session.WebhookEvents != "" {
-		json.Unmarshal([]byte(session.WebhookEvents), &webhookEvents)
+
+	if session.WebhookConfig != nil {
+		webhookURL = session.WebhookConfig.URL
+		webhookEvents = session.WebhookConfig.Events
 	}
 
 	return dto.SessionResponse{
@@ -337,7 +368,7 @@ func toSessionResponse(session *model.Session) dto.SessionResponse {
 		Name:          session.Name,
 		JID:           session.DeviceJID,
 		Status:        session.Status,
-		WebhookURL:    session.WebhookURL,
+		WebhookURL:    webhookURL,
 		WebhookEvents: webhookEvents,
 		CreatedAt:     session.CreatedAt,
 		UpdatedAt:     session.UpdatedAt,

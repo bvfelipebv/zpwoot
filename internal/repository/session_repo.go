@@ -24,18 +24,18 @@ func (r *SessionRepository) Create(ctx context.Context, session *model.Session) 
 	query := `
 		INSERT INTO sessions (
 			name, device_jid, status, connected,
-			qr_code, proxy_url, webhook_url, webhook_events,
+			qr_code, proxy_config, webhook_config,
 			apikey, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4,
-			$5, $6, $7, $8,
-			$9, NOW(), NOW()
+			$5, $6, $7,
+			$8, NOW(), NOW()
 		) RETURNING id, created_at, updated_at
 	`
 
 	err := r.db.QueryRowContext(ctx, query,
 		session.Name, session.DeviceJID, session.Status, session.Connected,
-		session.QRCode, session.ProxyURL, session.WebhookURL, session.WebhookEvents,
+		session.QRCode, session.ProxyConfig, session.WebhookConfig,
 		session.APIKey,
 	).Scan(&session.ID, &session.CreatedAt, &session.UpdatedAt)
 
@@ -51,7 +51,7 @@ func (r *SessionRepository) GetByID(ctx context.Context, id string) (*model.Sess
 	query := `
 		SELECT
 			id, name, device_jid, status, connected,
-			qr_code, proxy_url, webhook_url, webhook_events,
+			qr_code, proxy_config, webhook_config,
 			apikey, created_at, updated_at
 		FROM sessions
 		WHERE id = $1
@@ -61,7 +61,7 @@ func (r *SessionRepository) GetByID(ctx context.Context, id string) (*model.Sess
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&session.ID, &session.Name, &session.DeviceJID, &session.Status, &session.Connected,
-		&session.QRCode, &session.ProxyURL, &session.WebhookURL, &session.WebhookEvents,
+		&session.QRCode, &session.ProxyConfig, &session.WebhookConfig,
 		&session.APIKey, &session.CreatedAt, &session.UpdatedAt,
 	)
 
@@ -80,7 +80,7 @@ func (r *SessionRepository) GetByDeviceJID(ctx context.Context, deviceJID string
 	query := `
 		SELECT
 			id, name, device_jid, status, connected,
-			qr_code, proxy_url, webhook_url, webhook_events,
+			qr_code, proxy_config, webhook_config,
 			apikey, created_at, updated_at
 		FROM sessions
 		WHERE device_jid = $1
@@ -90,7 +90,7 @@ func (r *SessionRepository) GetByDeviceJID(ctx context.Context, deviceJID string
 
 	err := r.db.QueryRowContext(ctx, query, deviceJID).Scan(
 		&session.ID, &session.Name, &session.DeviceJID, &session.Status, &session.Connected,
-		&session.QRCode, &session.ProxyURL, &session.WebhookURL, &session.WebhookEvents,
+		&session.QRCode, &session.ProxyConfig, &session.WebhookConfig,
 		&session.APIKey, &session.CreatedAt, &session.UpdatedAt,
 	)
 
@@ -109,7 +109,7 @@ func (r *SessionRepository) List(ctx context.Context) ([]*model.Session, error) 
 	query := `
 		SELECT
 			id, name, device_jid, status, connected,
-			qr_code, proxy_url, webhook_url, webhook_events,
+			qr_code, proxy_config, webhook_config,
 			apikey, created_at, updated_at
 		FROM sessions
 		ORDER BY created_at DESC
@@ -127,7 +127,7 @@ func (r *SessionRepository) List(ctx context.Context) ([]*model.Session, error) 
 
 		err := rows.Scan(
 			&session.ID, &session.Name, &session.DeviceJID, &session.Status, &session.Connected,
-			&session.QRCode, &session.ProxyURL, &session.WebhookURL, &session.WebhookEvents,
+			&session.QRCode, &session.ProxyConfig, &session.WebhookConfig,
 			&session.APIKey, &session.CreatedAt, &session.UpdatedAt,
 		)
 		if err != nil {
@@ -149,7 +149,7 @@ func (r *SessionRepository) ListConnected(ctx context.Context) ([]*model.Session
 	query := `
 		SELECT
 			id, name, device_jid, status, connected,
-			qr_code, proxy_url, webhook_url, webhook_events,
+			qr_code, proxy_config, webhook_config,
 			apikey, created_at, updated_at
 		FROM sessions
 		WHERE connected = true AND status = 'connected'
@@ -168,7 +168,7 @@ func (r *SessionRepository) ListConnected(ctx context.Context) ([]*model.Session
 
 		err := rows.Scan(
 			&session.ID, &session.Name, &session.DeviceJID, &session.Status, &session.Connected,
-			&session.QRCode, &session.ProxyURL, &session.WebhookURL, &session.WebhookEvents,
+			&session.QRCode, &session.ProxyConfig, &session.WebhookConfig,
 			&session.APIKey, &session.CreatedAt, &session.UpdatedAt,
 		)
 		if err != nil {
@@ -194,17 +194,16 @@ func (r *SessionRepository) Update(ctx context.Context, session *model.Session) 
 			status = $3,
 			connected = $4,
 			qr_code = $5,
-			proxy_url = $6,
-			webhook_url = $7,
-			webhook_events = $8,
-			apikey = $9,
+			proxy_config = $6,
+			webhook_config = $7,
+			apikey = $8,
 			updated_at = NOW()
-		WHERE id = $10
+		WHERE id = $9
 	`
 
 	result, err := r.db.ExecContext(ctx, query,
 		session.Name, session.DeviceJID, session.Status, session.Connected,
-		session.QRCode, session.ProxyURL, session.WebhookURL, session.WebhookEvents,
+		session.QRCode, session.ProxyConfig, session.WebhookConfig,
 		session.APIKey, session.ID,
 	)
 

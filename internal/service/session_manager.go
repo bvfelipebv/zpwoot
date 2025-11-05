@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -39,13 +40,20 @@ func NewSessionManager(whatsappSvc *WhatsAppService, sessionRepo *repository.Ses
 	return manager
 }
 
-// CreateSession cria uma nova sessão no banco
+// CreateSession cria uma nova sessão no banco (método legado)
 func (m *SessionManager) CreateSession(ctx context.Context, name, webhookURL string) (*model.Session, error) {
 	session := &model.Session{
-		Name:       name,
-		Status:     "disconnected",
-		Connected:  false,
-		WebhookURL: webhookURL,
+		Name:      name,
+		Status:    "disconnected",
+		Connected: false,
+	}
+
+	if webhookURL != "" {
+		session.WebhookConfig = &model.WebhookConfig{
+			Enabled: true,
+			URL:     webhookURL,
+			Events:  []string{"message", "qr", "connected", "disconnected"},
+		}
 	}
 
 	if err := m.sessionRepo.Create(ctx, session); err != nil {
@@ -58,6 +66,20 @@ func (m *SessionManager) CreateSession(ctx context.Context, name, webhookURL str
 		Msg("Session created")
 
 	return session, nil
+}
+
+// CreateSessionWithConfig cria uma nova sessão com configuração completa
+func (m *SessionManager) CreateSessionWithConfig(ctx context.Context, session *model.Session) error {
+	if err := m.sessionRepo.Create(ctx, session); err != nil {
+		return fmt.Errorf("failed to create session: %w", err)
+	}
+
+	logger.Log.Info().
+		Str("session_id", session.ID).
+		Str("name", session.Name).
+		Msg("Session created with config")
+
+	return nil
 }
 
 // GetSession busca uma sessão por ID
@@ -229,15 +251,24 @@ func (m *SessionManager) GetSessionStatus(ctx context.Context, sessionID string)
 	return status, nil
 }
 
-// UpdateWebhook atualiza as configurações de webhook de uma sessão
+// UpdateWebhook atualiza as configurações de webhook de uma sessão (método legado)
 func (m *SessionManager) UpdateWebhook(ctx context.Context, sessionID, webhookURL, webhookEvents string) error {
 	session, err := m.sessionRepo.GetByID(ctx, sessionID)
 	if err != nil {
 		return fmt.Errorf("session not found: %w", err)
 	}
 
-	session.WebhookURL = webhookURL
-	session.WebhookEvents = webhookEvents
+	// Converter para novo formato
+	var events []string
+	if webhookEvents != "" {
+		json.Unmarshal([]byte(webhookEvents), &events)
+	}
+
+	session.WebhookConfig = &model.WebhookConfig{
+		Enabled: webhookURL != "",
+		URL:     webhookURL,
+		Events:  events,
+	}
 
 	if err := m.sessionRepo.Update(ctx, session); err != nil {
 		return fmt.Errorf("failed to update webhook: %w", err)
@@ -247,6 +278,28 @@ func (m *SessionManager) UpdateWebhook(ctx context.Context, sessionID, webhookUR
 		Str("session_id", sessionID).
 		Str("webhook_url", webhookURL).
 		Msg("Webhook updated")
+
+	return nil
+}
+
+// UpdateWebhookConfig atualiza as configurações de webhook com estrutura completa
+func (m *SessionManager) UpdateWebhookConfig(ctx context.Context, sessionID string, webhookConfig *model.WebhookConfig) error {
+	session, err := m.sessionRepo.GetByID(ctx, sessionID)
+	if err != nil {
+		return fmt.Errorf("session not found: %w", err)
+	}
+
+	session.WebhookConfig = webhookConfig
+
+	if err := m.sessionRepo.Update(ctx, session); err != nil {
+		return fmt.Errorf("failed to update webhook: %w", err)
+	}
+
+	logger.Log.Info().
+		Str("session_id", sessionID).
+		Bool("enabled", webhookConfig.Enabled).
+		Str("url", webhookConfig.URL).
+		Msg("Webhook config updated")
 
 	return nil
 }

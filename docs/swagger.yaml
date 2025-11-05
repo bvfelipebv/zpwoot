@@ -2,36 +2,37 @@ basePath: /
 definitions:
   dto.CreateSessionRequest:
     properties:
-      metadata:
-        additionalProperties: true
-        type: object
+      apikey:
+        example: "null"
+        type: string
       name:
+        example: sessao-atendimento-1
         maxLength: 100
         minLength: 3
         type: string
-      webhook_events:
-        items:
-          type: string
-        type: array
-      webhook_url:
-        type: string
+      proxy:
+        $ref: '#/definitions/dto.ProxyConfig'
+      webhook:
+        $ref: '#/definitions/dto.WebhookConfig'
     required:
     - name
     type: object
   dto.ErrorResponse:
     properties:
       details:
-        additionalProperties: true
         type: object
       error:
+        example: invalid_request
         type: string
       message:
+        example: Nome da sessão é obrigatório
         type: string
     type: object
   dto.PairPhoneRequest:
     properties:
       phone_number:
         description: 'Formato: +5511999999999'
+        example: "+5511999999999"
         type: string
     required:
     - phone_number
@@ -39,12 +40,43 @@ definitions:
   dto.PairPhoneResponse:
     properties:
       message:
+        example: Enter the pairing code on your phone
         type: string
       pairing_code:
+        example: ABCD-1234
         type: string
       phone_number:
+        example: "+5511999999999"
         type: string
       session_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    type: object
+  dto.ProxyConfig:
+    properties:
+      enabled:
+        example: true
+        type: boolean
+      host:
+        example: 10.0.0.1
+        type: string
+      password:
+        example: proxypass
+        type: string
+      port:
+        example: 3128
+        maximum: 65535
+        minimum: 1
+        type: integer
+      protocol:
+        enum:
+        - http
+        - https
+        - socks5
+        example: http
+        type: string
+      username:
+        example: proxyuser
         type: string
     type: object
   dto.SessionListResponse:
@@ -54,88 +86,130 @@ definitions:
           $ref: '#/definitions/dto.SessionResponse'
         type: array
       total:
+        example: 3
         type: integer
     type: object
   dto.SessionResponse:
     properties:
       business_name:
+        example: Minha Empresa LTDA
         type: string
       created_at:
+        example: "2025-11-05T10:00:00Z"
         type: string
       id:
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       jid:
+        example: 5511999999999@s.whatsapp.net
         type: string
       last_connected:
+        example: "2025-11-05T18:30:00Z"
         type: string
       last_disconnected:
+        example: "2025-11-05T17:00:00Z"
         type: string
       name:
+        example: Minha Sessão WhatsApp
         type: string
       platform:
+        example: android
         type: string
       push_name:
+        example: João Silva
         type: string
       status:
+        example: connected
         type: string
       updated_at:
+        example: "2025-11-05T18:30:00Z"
         type: string
       webhook_events:
+        example:
+        - message
+        - qr
+        - connected
         items:
           type: string
         type: array
       webhook_url:
+        example: https://seu-webhook.com/whatsapp
         type: string
     type: object
   dto.SessionStatusResponse:
     properties:
       can_connect:
+        example: true
         type: boolean
       connection_time:
         description: Duração formatada
+        example: 2h 30m 15s
         type: string
       id:
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       is_connected:
+        example: true
         type: boolean
       is_logged_in:
+        example: true
         type: boolean
       jid:
+        example: 5511999999999@s.whatsapp.net
         type: string
       last_connected:
+        example: "2025-11-05T18:30:00Z"
         type: string
       needs_pairing:
+        example: false
         type: boolean
       platform:
+        example: android
         type: string
       push_name:
+        example: João Silva
         type: string
       status:
+        example: connected
         type: string
     type: object
   dto.SuccessResponse:
     properties:
-      data: {}
+      data:
+        type: object
       message:
+        example: Operação realizada com sucesso
         type: string
       success:
+        example: true
         type: boolean
     type: object
   dto.UpdateWebhookRequest:
     properties:
-      webhook_events:
+      webhook:
+        $ref: '#/definitions/dto.WebhookConfig'
+    required:
+    - webhook
+    type: object
+  dto.WebhookConfig:
+    properties:
+      enabled:
+        example: true
+        type: boolean
+      events:
+        example:
+        - message
+        - status
+        - qr
         items:
           type: string
-        minItems: 1
         type: array
-      webhook_secret:
-        minLength: 16
+      token:
+        example: secreto-opcional
         type: string
-      webhook_url:
+      url:
+        example: https://hooks.exemplo.com/wuz
         type: string
-    required:
-    - webhook_events
-    - webhook_url
     type: object
 info:
   contact:

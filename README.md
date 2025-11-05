@@ -130,9 +130,10 @@ http://localhost:8080/swagger/index.html
 ### Recursos do Swagger:
 - ✅ Documentação completa de todos os endpoints
 - ✅ Teste interativo de APIs diretamente no navegador
-- ✅ Exemplos de requisições e respostas
-- ✅ Modelos de dados detalhados
-- ✅ Autenticação integrada (Bearer Token, API Key)
+- ✅ **Exemplos completos** de requisições e respostas
+- ✅ Modelos de dados detalhados com valores de exemplo
+- ✅ Autenticação integrada (API Key)
+- ✅ Host dinâmico (funciona em qualquer ambiente)
 
 ### Regenerar Documentação Swagger
 

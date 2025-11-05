@@ -22,13 +22,12 @@ CREATE TABLE IF NOT EXISTS sessions (
     -- WhatsApp data
     qr_code TEXT,
 
-    -- Configuration
-    proxy_url TEXT,
-    webhook_url TEXT DEFAULT '',
-    webhook_events TEXT DEFAULT '',
+    -- Configuration (JSON)
+    proxy_config JSONB DEFAULT NULL,
+    webhook_config JSONB DEFAULT NULL,
 
     -- Authentication - API key for session access
-    apikey TEXT NOT NULL DEFAULT '',
+    apikey TEXT DEFAULT NULL,
 
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -41,6 +40,8 @@ CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
 CREATE INDEX IF NOT EXISTS idx_sessions_apikey ON sessions(apikey);
 CREATE INDEX IF NOT EXISTS idx_sessions_connected ON sessions(connected);
 CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sessions_proxy_enabled ON sessions ((proxy_config->>'enabled'));
+CREATE INDEX IF NOT EXISTS idx_sessions_webhook_enabled ON sessions ((webhook_config->>'enabled'));
 
 -- Create function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -65,10 +66,9 @@ COMMENT ON COLUMN sessions.device_jid IS 'WhatsApp device JID (after pairing)';
 COMMENT ON COLUMN sessions.status IS 'Session status: disconnected, connecting, connected, pairing, failed, logged_out';
 COMMENT ON COLUMN sessions.connected IS 'Quick boolean flag for connection state';
 COMMENT ON COLUMN sessions.qr_code IS 'Base64 encoded QR code for pairing (temporary)';
-COMMENT ON COLUMN sessions.proxy_url IS 'Optional proxy URL for WhatsApp connection';
-COMMENT ON COLUMN sessions.webhook_url IS 'Webhook URL for receiving events';
-COMMENT ON COLUMN sessions.webhook_events IS 'JSON array of subscribed webhook events';
-COMMENT ON COLUMN sessions.apikey IS 'API key for authenticating requests to this session';
+COMMENT ON COLUMN sessions.proxy_config IS 'JSON configuration for proxy: {enabled, protocol, host, port, username, password}';
+COMMENT ON COLUMN sessions.webhook_config IS 'JSON configuration for webhook: {enabled, url, events, token}';
+COMMENT ON COLUMN sessions.apikey IS 'API key for authenticating requests to this session (optional)';
 COMMENT ON COLUMN sessions.created_at IS 'Timestamp when session was created';
 COMMENT ON COLUMN sessions.updated_at IS 'Timestamp when session was last updated';
 

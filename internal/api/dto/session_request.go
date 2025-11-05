@@ -1,11 +1,29 @@
 package dto
 
+// ProxyConfig - Configuração de proxy
+type ProxyConfig struct {
+	Enabled  bool   `json:"enabled" example:"true"`
+	Protocol string `json:"protocol" binding:"omitempty,oneof=http https socks5" example:"http"`
+	Host     string `json:"host" binding:"required_if=Enabled true" example:"10.0.0.1"`
+	Port     int    `json:"port" binding:"required_if=Enabled true,min=1,max=65535" example:"3128"`
+	Username string `json:"username,omitempty" example:"proxyuser"`
+	Password string `json:"password,omitempty" example:"proxypass"`
+}
+
+// WebhookConfig - Configuração de webhook
+type WebhookConfig struct {
+	Enabled bool     `json:"enabled" example:"true"`
+	URL     string   `json:"url" binding:"required_if=Enabled true,omitempty,url" example:"https://hooks.exemplo.com/wuz"`
+	Events  []string `json:"events" binding:"omitempty" example:"message,status,qr"`
+	Token   string   `json:"token,omitempty" example:"secreto-opcional"`
+}
+
 // CreateSessionRequest - Criar nova sessão
 type CreateSessionRequest struct {
-	Name          string                 `json:"name" binding:"required,min=3,max=100" example:"Minha Sessão WhatsApp"`
-	WebhookURL    string                 `json:"webhook_url" binding:"omitempty,url" example:"https://seu-webhook.com/whatsapp"`
-	WebhookEvents []string               `json:"webhook_events" binding:"omitempty" example:"message,qr,connected,disconnected"`
-	Metadata      map[string]interface{} `json:"metadata" binding:"omitempty" swaggertype:"object" example:"cliente:Empresa XYZ,ambiente:producao"`
+	Name    string         `json:"name" binding:"required,min=3,max=100" example:"sessao-atendimento-1"`
+	APIKey  *string        `json:"apikey" example:"null"`
+	Proxy   *ProxyConfig   `json:"proxy,omitempty"`
+	Webhook *WebhookConfig `json:"webhook,omitempty"`
 }
 
 // PairPhoneRequest - Parear com número de telefone
@@ -15,9 +33,7 @@ type PairPhoneRequest struct {
 
 // UpdateWebhookRequest - Atualizar webhook
 type UpdateWebhookRequest struct {
-	WebhookURL    string   `json:"webhook_url" binding:"required,url" example:"https://novo-webhook.com/whatsapp"`
-	WebhookEvents []string `json:"webhook_events" binding:"required,min=1" example:"message,qr,connected"`
-	WebhookSecret string   `json:"webhook_secret" binding:"omitempty,min=16" example:"meu-secret-super-seguro-123"`
+	Webhook WebhookConfig `json:"webhook" binding:"required"`
 }
 
 // ConnectSessionRequest - Conectar sessão (opcional, pode ser vazio)

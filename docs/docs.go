@@ -460,23 +460,21 @@ const docTemplate = `{
                 "name"
             ],
             "properties": {
-                "metadata": {
-                    "type": "object",
-                    "additionalProperties": true
+                "apikey": {
+                    "type": "string",
+                    "example": "null"
                 },
                 "name": {
                     "type": "string",
                     "maxLength": 100,
-                    "minLength": 3
+                    "minLength": 3,
+                    "example": "sessao-atendimento-1"
                 },
-                "webhook_events": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "proxy": {
+                    "$ref": "#/definitions/dto.ProxyConfig"
                 },
-                "webhook_url": {
-                    "type": "string"
+                "webhook": {
+                    "$ref": "#/definitions/dto.WebhookConfig"
                 }
             }
         },
@@ -484,14 +482,15 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "details": {
-                    "type": "object",
-                    "additionalProperties": true
+                    "type": "object"
                 },
                 "error": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "invalid_request"
                 },
                 "message": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Nome da sessão é obrigatório"
                 }
             }
         },
@@ -503,7 +502,8 @@ const docTemplate = `{
             "properties": {
                 "phone_number": {
                     "description": "Formato: +5511999999999",
-                    "type": "string"
+                    "type": "string",
+                    "example": "+5511999999999"
                 }
             }
         },
@@ -511,16 +511,56 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Enter the pairing code on your phone"
                 },
                 "pairing_code": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "ABCD-1234"
                 },
                 "phone_number": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "+5511999999999"
                 },
                 "session_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "dto.ProxyConfig": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "host": {
+                    "type": "string",
+                    "example": "10.0.0.1"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "proxypass"
+                },
+                "port": {
+                    "type": "integer",
+                    "maximum": 65535,
+                    "minimum": 1,
+                    "example": 3128
+                },
+                "protocol": {
+                    "type": "string",
+                    "enum": [
+                        "http",
+                        "https",
+                        "socks5"
+                    ],
+                    "example": "http"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "proxyuser"
                 }
             }
         },
@@ -534,7 +574,8 @@ const docTemplate = `{
                     }
                 },
                 "total": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 3
                 }
             }
         },
@@ -542,46 +583,63 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "business_name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Minha Empresa LTDA"
                 },
                 "created_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-11-05T10:00:00Z"
                 },
                 "id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "jid": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "5511999999999@s.whatsapp.net"
                 },
                 "last_connected": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-11-05T18:30:00Z"
                 },
                 "last_disconnected": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-11-05T17:00:00Z"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Minha Sessão WhatsApp"
                 },
                 "platform": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "android"
                 },
                 "push_name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "João Silva"
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "connected"
                 },
                 "updated_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-11-05T18:30:00Z"
                 },
                 "webhook_events": {
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "message",
+                        "qr",
+                        "connected"
+                    ]
                 },
                 "webhook_url": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://seu-webhook.com/whatsapp"
                 }
             }
         },
@@ -589,73 +647,104 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "can_connect": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 },
                 "connection_time": {
                     "description": "Duração formatada",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2h 30m 15s"
                 },
                 "id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "is_connected": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 },
                 "is_logged_in": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 },
                 "jid": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "5511999999999@s.whatsapp.net"
                 },
                 "last_connected": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-11-05T18:30:00Z"
                 },
                 "needs_pairing": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": false
                 },
                 "platform": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "android"
                 },
                 "push_name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "João Silva"
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "connected"
                 }
             }
         },
         "dto.SuccessResponse": {
             "type": "object",
             "properties": {
-                "data": {},
+                "data": {
+                    "type": "object"
+                },
                 "message": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Operação realizada com sucesso"
                 },
                 "success": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
         "dto.UpdateWebhookRequest": {
             "type": "object",
             "required": [
-                "webhook_events",
-                "webhook_url"
+                "webhook"
             ],
             "properties": {
-                "webhook_events": {
+                "webhook": {
+                    "$ref": "#/definitions/dto.WebhookConfig"
+                }
+            }
+        },
+        "dto.WebhookConfig": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "events": {
                     "type": "array",
-                    "minItems": 1,
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "message",
+                        "status",
+                        "qr"
+                    ]
                 },
-                "webhook_secret": {
+                "token": {
                     "type": "string",
-                    "minLength": 16
+                    "example": "secreto-opcional"
                 },
-                "webhook_url": {
-                    "type": "string"
+                "url": {
+                    "type": "string",
+                    "example": "https://hooks.exemplo.com/wuz"
                 }
             }
         }
