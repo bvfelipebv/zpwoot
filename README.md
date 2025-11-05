@@ -1,12 +1,17 @@
-# zpwoot - WhatsApp REST API
+# 🐱 zpmeow - WhatsApp Multi-Device API
 
-API REST para integração com WhatsApp usando a biblioteca whatsmeow.
+API REST completa para gerenciar múltiplas sessões WhatsApp usando whatsmeow.
 
-## Visão Geral
+## ✨ Características
 
-Este projeto expõe funcionalidades do WhatsApp via API REST. Principais recursos planejados: envio de mensagens, gerenciamento de grupos, contatos e sessões.
-
-Tecnologias utilizadas: Go, Gin, GORM, whatsmeow.
+- 🔄 **Múltiplas Sessões**: Gerencie várias contas WhatsApp simultaneamente
+- 🔐 **Autenticação Segura**: API Key com 3 métodos de autenticação
+- 📱 **Pareamento Flexível**: QR Code ou código via telefone
+- 🗄️ **PostgreSQL**: Banco de dados robusto e escalável
+- 🔄 **Auto-Restore**: Reconecta sessões automaticamente ao reiniciar
+- 📡 **Webhooks**: Receba eventos em tempo real
+- 🚀 **Graceful Shutdown**: Desconexão segura de todas as sessões
+- 📝 **Logs Estruturados**: Zerolog para logging profissional
 
 ## Estrutura do Projeto
 
@@ -25,53 +30,101 @@ zpwoot/
 └── go.mod              # Dependências do projeto
 ```
 
-## Requisitos
+## 🚀 Início Rápido
 
-- Go 1.21 ou superior
-- SQLite (desenvolvimento) ou PostgreSQL (produção)
-- Conta WhatsApp válida para autenticação
+### Pré-requisitos
 
-## Instalação
+- Go 1.24+
+- Docker & Docker Compose
+- PostgreSQL 16 (via Docker)
+
+### Instalação
 
 ```bash
-# Clonar o repositório
-git clone <repo-url>
+# Clone o repositório
+git clone https://github.com/bvfelipebv/zpwoot.git
 cd zpwoot
 
-# Copiar arquivo de configuração
+# Copie o arquivo de configuração
 cp .env.example .env
 
-# Editar .env com suas configurações
+# Edite o .env e configure sua API_KEY
+nano .env
 
-# Baixar dependências
-go mod download
+# Inicie o PostgreSQL
+docker-compose up -d postgres
+
+# Compile o projeto
+go build -o bin/zpmeow ./cmd/server/main.go
+
+# Execute
+./bin/zpmeow
 ```
 
-## Configuração
-
-Veja `.env.example` para as variáveis principais: PORT, DATABASE_URL, API_KEY, WHATSAPP_DATA_DIR.
-
-## Execução
+### Verificar Status
 
 ```bash
-# Modo desenvolvimento
-go run cmd/server/main.go
-
-# Build para produção
-go build -o server cmd/server/main.go
-./server
+curl http://localhost:8080/health
 ```
 
-## Endpoints da API
+## 🐳 Docker
 
-A documentação completa será adicionada após a implementação dos handlers. Categorias principais: Sessões, Mensagens, Grupos, Contatos.
+```bash
+# Iniciar PostgreSQL
+docker-compose up -d postgres
 
-## Desenvolvimento
+# Iniciar DBGate (interface moderna - recomendado)
+docker-compose up -d dbgate
+# Acesse: http://localhost:3000
 
-Status: Em desenvolvimento
+# Iniciar pgAdmin (interface tradicional - opcional)
+docker-compose up -d pgadmin
+# Acesse: http://localhost:5050
 
-Próximas fases: Implementação de handlers, services e repository.
+# Iniciar todos os serviços
+docker-compose up -d
+```
 
-## Licença
+### Interfaces de Gerenciamento
 
-Escolha uma licença (por exemplo MIT) e adicione-a neste arquivo.
+**DBGate** (Recomendado) - http://localhost:3000
+- ✅ Interface moderna e intuitiva
+- ✅ Conexão pré-configurada automaticamente
+- ✅ Query builder visual
+- ✅ Importação/exportação de dados
+- ✅ Sem necessidade de configuração manual
+
+**pgAdmin** (Tradicional) - http://localhost:5050
+- Interface clássica do PostgreSQL
+- Login: admin@zpmeow.local / admin
+
+## 🔌 API Endpoints
+
+### Health Check (Sem Autenticação)
+```bash
+GET /health
+```
+
+### Sessões (Requer Autenticação)
+
+- `POST /api/sessions/create` - Criar sessão
+- `GET /api/sessions/list` - Listar sessões
+- `GET /api/sessions/:id/info` - Detalhes
+- `GET /api/sessions/:id/status` - Status detalhado
+- `POST /api/sessions/:id/connect` - Conectar
+- `POST /api/sessions/:id/disconnect` - Desconectar
+- `POST /api/sessions/:id/pair` - Parear com telefone
+- `PUT /api/sessions/:id/webhook` - Atualizar webhook
+- `DELETE /api/sessions/:id/delete` - Deletar
+
+## 🔐 Autenticação
+
+A API suporta 3 métodos:
+
+1. **Bearer Token**: `Authorization: Bearer your-api-key`
+2. **Header**: `X-API-Key: your-api-key`
+3. **Query**: `?api_key=your-api-key`
+
+## 📝 Licença
+
+MIT License
