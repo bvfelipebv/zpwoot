@@ -154,7 +154,19 @@ swag init -g cmd/zpwoot/main.go --output docs
 GET /health
 ```
 
-### Sessões (Requer Autenticação)
+### Criar Sessão (Formato Simplificado)
+
+```json
+{
+  "name": "sessao-atendimento-1",
+  "proxy": { "enabled": true, "protocol": "http", "host": "10.0.0.1", "port": 3128 },
+  "webhook": { "enabled": true, "url": "https://hooks.exemplo.com/wuz", "events": ["message"] }
+}
+```
+
+**Ver formato completo:** `docs/API_REQUEST_FORMAT.md`
+
+### Todos os Endpoints (Requer Autenticação)
 
 - `POST /sessions/create` - Criar sessão
 - `GET /sessions/list` - Listar sessões
@@ -165,6 +177,8 @@ GET /health
 - `POST /sessions/:id/pair` - Parear com telefone
 - `PUT /sessions/:id/webhook` - Atualizar webhook
 - `DELETE /sessions/:id/delete` - Deletar
+
+**Documentação Swagger:** http://localhost:8080/swagger/index.html
 
 ## 🔐 Autenticação
 
