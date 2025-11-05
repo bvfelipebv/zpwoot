@@ -8,9 +8,9 @@ import (
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types/events"
 
-	"zpmeow/internal/repository"
-	"zpmeow/pkg/logger"
-	"zpmeow/pkg/utils"
+	"zpwoot/internal/repository"
+	"zpwoot/pkg/logger"
+	"zpwoot/pkg/utils"
 )
 
 // PairingService gerencia pareamento de sessões WhatsApp
@@ -241,4 +241,3 @@ func (p *PairingService) handlePairingSuccess(ctx context.Context, client *whats
 		Str("session_id", sessionID).
 		Msg("Session paired and connected successfully")
 }
-

@@ -1,6 +1,6 @@
 -- Migration: Create sessions table
 -- Description: Creates the main sessions table for storing WhatsApp session data
--- Author: zpmeow
+-- Author: zpwoot
 -- Date: 2025-01-05
 
 -- Enable UUID extension for generating random UUIDs

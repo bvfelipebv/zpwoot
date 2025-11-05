@@ -6,8 +6,8 @@ import (
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types/events"
 
-	"zpmeow/internal/repository"
-	"zpmeow/pkg/logger"
+	"zpwoot/internal/repository"
+	"zpwoot/pkg/logger"
 )
 
 // EventHandler gerencia eventos do WhatsApp
@@ -58,9 +58,9 @@ func (h *EventHandler) handleConnected(sessionID string, _ *events.Connected) {
 	logger.Log.Info().
 		Str("session_id", sessionID).
 		Msg("WhatsApp connected")
-	
+
 	ctx := context.Background()
-	
+
 	// Atualizar status no banco
 	if err := h.sessionRepo.UpdateStatus(ctx, sessionID, "connected", true); err != nil {
 		logger.Log.Error().
@@ -68,7 +68,7 @@ func (h *EventHandler) handleConnected(sessionID string, _ *events.Connected) {
 			Str("session_id", sessionID).
 			Msg("Failed to update session status to connected")
 	}
-	
+
 	// TODO: Enviar webhook de conexão
 }
 
@@ -77,9 +77,9 @@ func (h *EventHandler) handleDisconnected(sessionID string, _ *events.Disconnect
 	logger.Log.Warn().
 		Str("session_id", sessionID).
 		Msg("WhatsApp disconnected")
-	
+
 	ctx := context.Background()
-	
+
 	// Atualizar status no banco
 	if err := h.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false); err != nil {
 		logger.Log.Error().
@@ -87,7 +87,7 @@ func (h *EventHandler) handleDisconnected(sessionID string, _ *events.Disconnect
 			Str("session_id", sessionID).
 			Msg("Failed to update session status to disconnected")
 	}
-	
+
 	// TODO: Enviar webhook de desconexão
 }
 
@@ -97,9 +97,9 @@ func (h *EventHandler) handleLoggedOut(sessionID string, evt *events.LoggedOut) 
 		Str("session_id", sessionID).
 		Str("reason", evt.Reason.String()).
 		Msg("WhatsApp logged out")
-	
+
 	ctx := context.Background()
-	
+
 	// Atualizar status no banco
 	if err := h.sessionRepo.UpdateStatus(ctx, sessionID, "logged_out", false); err != nil {
 		logger.Log.Error().
@@ -107,7 +107,7 @@ func (h *EventHandler) handleLoggedOut(sessionID string, evt *events.LoggedOut) 
 			Str("session_id", sessionID).
 			Msg("Failed to update session status to logged_out")
 	}
-	
+
 	// Limpar device JID
 	session, err := h.sessionRepo.GetByID(ctx, sessionID)
 	if err == nil {
@@ -115,7 +115,7 @@ func (h *EventHandler) handleLoggedOut(sessionID string, evt *events.LoggedOut) 
 		session.QRCode = ""
 		h.sessionRepo.Update(ctx, session)
 	}
-	
+
 	// TODO: Enviar webhook de logout
 }
 
@@ -126,7 +126,7 @@ func (h *EventHandler) handleMessage(sessionID string, evt *events.Message) {
 		Str("from", evt.Info.Sender.String()).
 		Str("message_id", evt.Info.ID).
 		Msg("Message received")
-	
+
 	// TODO: Processar mensagem e enviar webhook
 }
 
@@ -136,7 +136,7 @@ func (h *EventHandler) handleReceipt(sessionID string, evt *events.Receipt) {
 		Str("session_id", sessionID).
 		Str("type", string(evt.Type)).
 		Msg("Receipt received")
-	
+
 	// TODO: Processar recibo e enviar webhook
 }
 
@@ -146,7 +146,7 @@ func (h *EventHandler) handlePresence(sessionID string, evt *events.Presence) {
 		Str("session_id", sessionID).
 		Str("from", evt.From.String()).
 		Msg("Presence update")
-	
+
 	// TODO: Processar presença e enviar webhook
 }
 
@@ -156,7 +156,7 @@ func (h *EventHandler) handleHistorySync(sessionID string, evt *events.HistorySy
 		Str("session_id", sessionID).
 		Str("type", evt.Data.SyncType.String()).
 		Msg("History sync")
-	
+
 	// TODO: Processar histórico
 }
 
@@ -167,7 +167,6 @@ func (h *EventHandler) handlePushName(sessionID string, evt *events.PushName) {
 		Str("jid", evt.JID.String()).
 		Str("push_name", evt.NewPushName).
 		Msg("Push name updated")
-	
+
 	// TODO: Atualizar push name no banco
 }
-

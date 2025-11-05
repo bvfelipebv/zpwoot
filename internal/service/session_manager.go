@@ -7,9 +7,9 @@ import (
 
 	"go.mau.fi/whatsmeow"
 
-	"zpmeow/internal/model"
-	"zpmeow/internal/repository"
-	"zpmeow/pkg/logger"
+	"zpwoot/internal/model"
+	"zpwoot/internal/repository"
+	"zpwoot/pkg/logger"
 )
 
 // SessionManager gerencia sessões WhatsApp ativas
@@ -18,8 +18,8 @@ type SessionManager struct {
 	sessionRepo *repository.SessionRepository
 
 	// Map de clientes ativos: sessionID -> *whatsmeow.Client
-	clients     map[string]*whatsmeow.Client
-	clientsMux  sync.RWMutex
+	clients    map[string]*whatsmeow.Client
+	clientsMux sync.RWMutex
 
 	// Event handler
 	eventHandler *EventHandler
@@ -320,4 +320,3 @@ func (m *SessionManager) GetActiveSessionsCount() int {
 	defer m.clientsMux.RUnlock()
 	return len(m.clients)
 }
-

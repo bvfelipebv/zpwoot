@@ -1,4 +1,4 @@
-# zpmeow - WhatsApp REST API
+# zpwoot - WhatsApp REST API
 
 API REST para integração com WhatsApp usando a biblioteca whatsmeow.
 
@@ -11,7 +11,7 @@ Tecnologias utilizadas: Go, Gin, GORM, whatsmeow.
 ## Estrutura do Projeto
 
 ```
-zpmeow/
+zpwoot/
 ├── cmd/server/          # Ponto de entrada da aplicação
 ├── internal/
 │   ├── api/            # Handlers HTTP e routers
@@ -36,7 +36,7 @@ zpmeow/
 ```bash
 # Clonar o repositório
 git clone <repo-url>
-cd zpmeow
+cd zpwoot
 
 # Copiar arquivo de configuração
 cp .env.example .env

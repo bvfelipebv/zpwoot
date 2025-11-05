@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-Este diretório contém as migrações de banco de dados do zpmeow. As migrações são executadas **automaticamente** na inicialização do sistema.
+Este diretório contém as migrações de banco de dados do zpwoot. As migrações são executadas **automaticamente** na inicialização do sistema.
 
 ## Como Funciona
 
@@ -104,9 +104,9 @@ package main
 
 import (
     "context"
-    "zpmeow/internal/config"
-    "zpmeow/internal/db"
-    "zpmeow/pkg/logger"
+    "zpwoot/internal/config"
+    "zpwoot/internal/db"
+    "zpwoot/pkg/logger"
 )
 
 func main() {

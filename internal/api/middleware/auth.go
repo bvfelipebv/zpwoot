@@ -4,9 +4,10 @@ import (
 	"net/http"
 	"strings"
 
+	"zpwoot/internal/config"
+	"zpwoot/pkg/logger"
+
 	"github.com/gin-gonic/gin"
-	"zpmeow/internal/config"
-	"zpmeow/pkg/logger"
 )
 
 // AuthenticateGlobal middleware para autenticação via API Key
@@ -18,24 +19,24 @@ func AuthenticateGlobal() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Obter API Key configurada
 		expectedAPIKey := config.AppConfig.APIKey
-		
+
 		// Se não houver API Key configurada, permitir acesso
 		if expectedAPIKey == "" {
 			logger.Log.Warn().Msg("No API key configured - authentication disabled")
 			c.Next()
 			return
 		}
-		
+
 		// Tentar obter API Key de diferentes fontes
 		apiKey := extractAPIKey(c)
-		
+
 		// Validar API Key
 		if apiKey == "" {
 			logger.Log.Warn().
 				Str("ip", c.ClientIP()).
 				Str("path", c.Request.URL.Path).
 				Msg("Missing API key")
-			
+
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error":   "unauthorized",
 				"message": "API key is required",
@@ -43,13 +44,13 @@ func AuthenticateGlobal() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		if apiKey != expectedAPIKey {
 			logger.Log.Warn().
 				Str("ip", c.ClientIP()).
 				Str("path", c.Request.URL.Path).
 				Msg("Invalid API key")
-			
+
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error":   "unauthorized",
 				"message": "Invalid API key",
@@ -57,13 +58,13 @@ func AuthenticateGlobal() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		// API Key válida - continuar
 		logger.Log.Debug().
 			Str("ip", c.ClientIP()).
 			Str("path", c.Request.URL.Path).
 			Msg("Request authenticated")
-		
+
 		c.Next()
 	}
 }
@@ -79,19 +80,19 @@ func extractAPIKey(c *gin.Context) string {
 			return strings.TrimSpace(parts[1])
 		}
 	}
-	
+
 	// 2. Tentar X-API-Key header
 	apiKeyHeader := c.GetHeader("X-API-Key")
 	if apiKeyHeader != "" {
 		return strings.TrimSpace(apiKeyHeader)
 	}
-	
+
 	// 3. Tentar query parameter
 	apiKeyQuery := c.Query("api_key")
 	if apiKeyQuery != "" {
 		return strings.TrimSpace(apiKeyQuery)
 	}
-	
+
 	return ""
 }
 
@@ -121,9 +122,9 @@ func RequestLogger() gin.HandlerFunc {
 			Str("ip", c.ClientIP()).
 			Str("user_agent", c.Request.UserAgent()).
 			Msg("Incoming request")
-		
+
 		c.Next()
-		
+
 		logger.Log.Info().
 			Str("method", c.Request.Method).
 			Str("path", c.Request.URL.Path).
@@ -131,4 +132,3 @@ func RequestLogger() gin.HandlerFunc {
 			Msg("Request completed")
 	}
 }
-

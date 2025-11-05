@@ -6,10 +6,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"zpmeow/internal/api/dto"
-	"zpmeow/internal/model"
-	"zpmeow/internal/service"
-	"zpmeow/pkg/logger"
+	"zpwoot/internal/api/dto"
+	"zpwoot/internal/model"
+	"zpwoot/internal/service"
+	"zpwoot/pkg/logger"
 )
 
 // SessionHandler gerencia requisições HTTP de sessões

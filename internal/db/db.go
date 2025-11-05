@@ -7,8 +7,8 @@ import (
 
 	_ "github.com/lib/pq" // PostgreSQL driver
 
-	"zpmeow/internal/config"
-	"zpmeow/pkg/logger"
+	"zpwoot/internal/config"
+	"zpwoot/pkg/logger"
 )
 
 // DB é a conexão global do banco de dados

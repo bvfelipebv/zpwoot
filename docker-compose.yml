@@ -4,32 +4,31 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: zpmeow-postgres
+    container_name: zpwoot-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: zpmeow
-      POSTGRES_USER: zpmeow
-      POSTGRES_PASSWORD: zpmeow_password_change_in_production
+      POSTGRES_DB: ${POSTGRES_DB:-zpwoot}
+      POSTGRES_USER: ${POSTGRES_USER:-zpwoot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zpwoot_password_change_in_production}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U zpmeow -d zpmeow"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zpwoot} -d ${POSTGRES_DB:-zpwoot}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - zpmeow-network
+      - zpwoot-network
 
-  # zpmeow API (opcional - descomente para rodar a API no Docker)
+  # zpwoot API (opcional - descomente para rodar a API no Docker)
   # api:
   #   build:
   #     context: .
   #     dockerfile: Dockerfile
-  #   container_name: zpmeow-api
+  #   container_name: zpwoot-api
   #   restart: unless-stopped
   #   ports:
   #     - "8080:8080"
@@ -37,7 +36,7 @@ services:
   #     PORT: 8080
   #     ENVIRONMENT: production
   #     DATABASE_DRIVER: postgres
-  #     DATABASE_URL: postgres://zpmeow:zpmeow_password_change_in_production@postgres:5432/zpmeow?sslmode=disable
+  #     DATABASE_URL: postgres://zpwoot:zpwoot_password_change_in_production@postgres:5432/zpwoot?sslmode=disable
   #     API_KEY: ${API_KEY:-your-secret-api-key-here}
   #     LOG_LEVEL: info
   #     WHATSAPP_DATA_DIR: /app/data
@@ -51,15 +50,15 @@ services:
   #     postgres:
   #       condition: service_healthy
   #   networks:
-  #     - zpmeow-network
+  #     - zpwoot-network
 
   # pgAdmin (opcional - interface web para gerenciar PostgreSQL)
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: zpmeow-pgadmin
+    container_name: zpwoot-pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@zpmeow.local
+      PGADMIN_DEFAULT_EMAIL: admin@zpwoot.local
       PGADMIN_DEFAULT_PASSWORD: admin
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
@@ -69,7 +68,29 @@ services:
     depends_on:
       - postgres
     networks:
-      - zpmeow-network
+      - zpwoot-network
+
+  # DBGate (interface moderna para gerenciar PostgreSQL)
+  dbgate:
+    image: dbgate/dbgate:latest
+    container_name: zpwoot_dbgate
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      CONNECTIONS: con1
+      LABEL_con1: zpwoot PostgreSQL
+      SERVER_con1: postgres
+      USER_con1: ${POSTGRES_USER:-zpwoot}
+      PASSWORD_con1: ${POSTGRES_PASSWORD:-zpwoot_password_change_in_production}
+      PORT_con1: 5432
+      ENGINE_con1: postgres@dbgate-plugin-postgres
+      DATABASE_con1: ${POSTGRES_DB:-zpwoot}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - zpwoot-network
 
 volumes:
   postgres_data:
@@ -80,6 +101,6 @@ volumes:
   #   driver: local
 
 networks:
-  zpmeow-network:
+  zpwoot-network:
     driver: bridge
 

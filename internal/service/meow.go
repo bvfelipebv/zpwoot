@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"zpmeow/internal/config"
-	"zpmeow/pkg/logger"
+	"zpwoot/internal/config"
+	"zpwoot/pkg/logger"
 )
 
 // MeowService é um stub para encapsular a lógica do cliente whatsmeow.

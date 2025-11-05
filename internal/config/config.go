@@ -36,7 +36,7 @@ func Load() error {
 	cfg := &Config{
 		Port:                getEnv("PORT", "8080"),
 		DatabaseDriver:      getEnv("DATABASE_DRIVER", "postgres"),
-		DatabaseURL:         getEnv("DATABASE_URL", "postgres://zpmeow:zpmeow_password_change_in_production@localhost:5432/zpmeow?sslmode=disable"),
+		DatabaseURL:         getEnv("DATABASE_URL", "postgres://zpwoot:zpwoot_password_change_in_production@localhost:5432/zpwoot?sslmode=disable"),
 		Environment:         getEnv("ENVIRONMENT", "development"),
 		LogLevel:            getEnv("LOG_LEVEL", "info"),
 		WhatsAppDataDir:     getEnv("WHATSAPP_DATA_DIR", "./data"),

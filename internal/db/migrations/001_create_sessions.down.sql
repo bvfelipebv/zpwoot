@@ -1,6 +1,6 @@
 -- Migration Rollback: Drop sessions table
 -- Description: Removes the sessions table and related objects
--- Author: zpmeow
+-- Author: zpwoot
 -- Date: 2025-01-05
 
 -- Drop trigger

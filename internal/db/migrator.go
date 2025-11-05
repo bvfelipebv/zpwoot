@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"zpmeow/pkg/logger"
+	"zpwoot/pkg/logger"
 )
 
 //go:embed migrations/*.sql
@@ -272,4 +272,3 @@ func RollbackMigration(ctx context.Context, version int) error {
 
 	return nil
 }
-

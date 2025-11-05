@@ -10,19 +10,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"zpmeow/internal/api"
-	"zpmeow/internal/api/handlers"
-	"zpmeow/internal/config"
-	"zpmeow/internal/db"
-	"zpmeow/internal/repository"
-	"zpmeow/internal/service"
-	"zpmeow/pkg/logger"
+	"zpwoot/internal/api"
+	"zpwoot/internal/api/handlers"
+	"zpwoot/internal/config"
+	"zpwoot/internal/db"
+	"zpwoot/internal/repository"
+	"zpwoot/internal/service"
+	"zpwoot/pkg/logger"
 )
 
 func main() {
 	// Initialize logger
 	logger.Init("info")
-	logger.Log.Info().Msg("🚀 Starting zpmeow - WhatsApp Multi-Device API")
+	logger.Log.Info().Msg("🚀 Starting zpwoot - WhatsApp Multi-Device API")
 
 	// Load configuration
 	if err := config.Load(); err != nil {

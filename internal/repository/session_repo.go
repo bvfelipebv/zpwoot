@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"zpmeow/internal/model"
+	"zpwoot/internal/model"
 )
 
 // SessionRepository gerencia operações de sessão no banco usando database/sql nativo
@@ -103,7 +103,6 @@ func (r *SessionRepository) GetByDeviceJID(ctx context.Context, deviceJID string
 
 	return session, nil
 }
-
 
 // List lista todas as sessões
 func (r *SessionRepository) List(ctx context.Context) ([]*model.Session, error) {
@@ -225,7 +224,6 @@ func (r *SessionRepository) Update(ctx context.Context, session *model.Session) 
 	session.UpdatedAt = time.Now()
 	return nil
 }
-
 
 // Delete deleta uma sessão permanentemente
 func (r *SessionRepository) Delete(ctx context.Context, id string) error {

@@ -12,7 +12,7 @@ import (
 	"go.mau.fi/whatsmeow/types"
 	waLog "go.mau.fi/whatsmeow/util/log"
 
-	"zpmeow/pkg/logger"
+	"zpwoot/pkg/logger"
 )
 
 // WhatsAppService gerencia a integração com whatsmeow
@@ -66,7 +66,7 @@ func (s *WhatsAppService) GetOrCreateDevice(ctx context.Context, sessionID strin
 
 	// Se não encontrou, criar novo device
 	device := s.container.NewDevice()
-	
+
 	logger.Log.Info().
 		Str("session_id", sessionID).
 		Msg("Created new WhatsApp device")
@@ -147,4 +147,3 @@ func (s *WhatsAppService) Close() error {
 	}
 	return nil
 }
-
