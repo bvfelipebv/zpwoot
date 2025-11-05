@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -295,7 +296,37 @@ func (h *MessageHandler) SendDocument(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Router /sessions/{id}/message/sticker [post]
 func (h *MessageHandler) SendSticker(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, dto.ErrorResponse{Error: "not_implemented", Message: "Sticker not yet implemented"})
+	sessionID := c.Param("id")
+	var req dto.SendStickerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: err.Error()})
+		return
+	}
+
+	if req.Phone == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "phone is required"})
+		return
+	}
+
+	if req.Sticker == "" && req.StickerBase64 == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "sticker (URL) or stickerBase64 is required"})
+		return
+	}
+
+	client, err := h.sessionManager.GetClient(sessionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "session_not_found", Message: err.Error()})
+		return
+	}
+
+	ctx := context.Background()
+	messageID, timestamp, err := h.sessionManager.SendSticker(ctx, client, req.Phone, req.Sticker, req.StickerBase64)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "send_failed", Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.MessageResponse{Success: true, MessageID: messageID, Timestamp: timestamp.Unix(), Phone: req.Phone})
 }
 
 // @Summary Enviar mídia genérica
@@ -311,12 +342,15 @@ func (h *MessageHandler) SendMedia(c *gin.Context) {
 	c.JSON(http.StatusNotImplemented, dto.ErrorResponse{Error: "not_implemented", Message: "Generic media not yet implemented"})
 }
 
-// @Summary Enviar contato
+// @Summary Enviar contato(s)
+// @Description Envia um contato único (ContactMessage) ou lista de contatos (ContactsArrayMessage)
+// @Description Se contacts tiver 1 item: envia contato único
+// @Description Se contacts tiver múltiplos itens: envia lista de contatos
 // @Tags Messages
 // @Accept json
 // @Produce json
 // @Param id path string true "Session ID"
-// @Param request body dto.SendContactRequest true "Dados do contato"
+// @Param request body dto.SendContactRequest true "Dados do(s) contato(s)"
 // @Success 200 {object} dto.MessageResponse
 // @Security ApiKeyAuth
 // @Router /sessions/{id}/message/contact [post]
@@ -328,8 +362,8 @@ func (h *MessageHandler) SendContact(c *gin.Context) {
 		return
 	}
 
-	if req.Phone == "" || req.ContactPhone == "" || req.ContactName == "" {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "phone, contactPhone and contactName are required"})
+	if req.Phone == "" || len(req.Contacts) == 0 {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "phone and contacts are required"})
 		return
 	}
 
@@ -340,7 +374,30 @@ func (h *MessageHandler) SendContact(c *gin.Context) {
 	}
 
 	ctx := context.Background()
-	messageID, timestamp, err := h.sessionManager.SendContact(ctx, client, req.Phone, req.ContactName, req.ContactPhone)
+	var messageID string
+	var timestamp time.Time
+
+	logger.Log.Info().Int("contacts_count", len(req.Contacts)).Msg("Processing contact request")
+
+	// Se for apenas 1 contato, usar ContactMessage (contato único)
+	if len(req.Contacts) == 1 {
+		contact := req.Contacts[0]
+		logger.Log.Info().Str("name", contact.Name).Str("phone", contact.Phone).Msg("Sending single contact")
+		messageID, timestamp, err = h.sessionManager.SendContact(ctx, client, req.Phone, contact.Name, contact.Phone, contact.Vcard)
+	} else {
+		// Se for múltiplos contatos, usar ContactsArrayMessage (lista)
+		logger.Log.Info().Int("count", len(req.Contacts)).Msg("Sending contacts list")
+		contacts := make([]service.ContactData, len(req.Contacts))
+		for i, c := range req.Contacts {
+			contacts[i] = service.ContactData{
+				Name:  c.Name,
+				Phone: c.Phone,
+				Vcard: c.Vcard,
+			}
+		}
+		messageID, timestamp, err = h.sessionManager.SendContactsList(ctx, client, req.Phone, contacts)
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "send_failed", Message: err.Error()})
 		return
@@ -378,7 +435,7 @@ func (h *MessageHandler) SendLocation(c *gin.Context) {
 	}
 
 	ctx := context.Background()
-	messageID, timestamp, err := h.sessionManager.SendLocation(ctx, client, req.Phone, req.Latitude, req.Longitude, req.Name, req.Address)
+	messageID, timestamp, err := h.sessionManager.SendLocation(ctx, client, req.Phone, req.Latitude, req.Longitude, req.Name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "send_failed", Message: err.Error()})
 		return

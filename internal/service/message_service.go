@@ -375,7 +375,7 @@ func (m *SessionManager) SendPresence(ctx context.Context, client *whatsmeow.Cli
 }
 
 // SendLocation envia localização
-func (m *SessionManager) SendLocation(ctx context.Context, client *whatsmeow.Client, phone string, latitude float64, longitude float64, name string, address string) (string, time.Time, error) {
+func (m *SessionManager) SendLocation(ctx context.Context, client *whatsmeow.Client, phone string, latitude float64, longitude float64, name string) (string, time.Time, error) {
 	recipient, err := parseJID(phone)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
@@ -386,7 +386,6 @@ func (m *SessionManager) SendLocation(ctx context.Context, client *whatsmeow.Cli
 			DegreesLatitude:  proto.Float64(latitude),
 			DegreesLongitude: proto.Float64(longitude),
 			Name:             proto.String(name),
-			Address:          proto.String(address),
 		},
 	}
 
@@ -399,15 +398,21 @@ func (m *SessionManager) SendLocation(ctx context.Context, client *whatsmeow.Cli
 	return resp.ID, resp.Timestamp, nil
 }
 
-// SendContact envia contato
-func (m *SessionManager) SendContact(ctx context.Context, client *whatsmeow.Client, phone string, contactName string, contactPhone string) (string, time.Time, error) {
+// ContactData representa dados de um contato
+type ContactData struct {
+	Name  string
+	Phone string
+	Vcard string
+}
+
+// SendContact envia contato único com vCard formatado
+func (m *SessionManager) SendContact(ctx context.Context, client *whatsmeow.Client, phone string, contactName string, contactPhone string, customVcard string) (string, time.Time, error) {
 	recipient, err := parseJID(phone)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
 	}
 
-	// Criar vCard
-	vcard := fmt.Sprintf("BEGIN:VCARD\nVERSION:3.0\nFN:%s\nTEL;type=CELL:+%s\nEND:VCARD", contactName, contactPhone)
+	vcard := generateVcard(contactName, contactPhone, customVcard)
 
 	msg := &waProto.Message{
 		ContactMessage: &waProto.ContactMessage{
@@ -421,7 +426,156 @@ func (m *SessionManager) SendContact(ctx context.Context, client *whatsmeow.Clie
 		return "", time.Time{}, fmt.Errorf("failed to send contact: %w", err)
 	}
 
-	logger.Log.Info().Str("message_id", resp.ID).Str("phone", phone).Msg("Contact sent")
+	logger.Log.Info().Str("message_id", resp.ID).Str("phone", phone).Str("contact", contactName).Msg("Single contact sent")
+	return resp.ID, resp.Timestamp, nil
+}
+
+// SendContactsList envia lista de contatos usando ContactsArrayMessage
+func (m *SessionManager) SendContactsList(ctx context.Context, client *whatsmeow.Client, phone string, contacts []ContactData) (string, time.Time, error) {
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	if len(contacts) == 0 {
+		return "", time.Time{}, fmt.Errorf("contacts list cannot be empty")
+	}
+
+	// Criar array de ContactMessage
+	contactMessages := make([]*waProto.ContactMessage, len(contacts))
+	for i, contact := range contacts {
+		vcard := generateVcard(contact.Name, contact.Phone, contact.Vcard)
+		contactMessages[i] = &waProto.ContactMessage{
+			DisplayName: proto.String(contact.Name),
+			Vcard:       proto.String(vcard),
+		}
+	}
+
+	// Usar o nome do primeiro contato como DisplayName da lista
+	displayName := contacts[0].Name
+	if len(contacts) > 1 {
+		displayName = fmt.Sprintf("%s e mais %d", contacts[0].Name, len(contacts)-1)
+	}
+
+	msg := &waProto.Message{
+		ContactsArrayMessage: &waProto.ContactsArrayMessage{
+			DisplayName: proto.String(displayName),
+			Contacts:    contactMessages,
+		},
+	}
+
+	resp, err := client.SendMessage(ctx, recipient, msg)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to send contacts list: %w", err)
+	}
+
+	logger.Log.Info().Str("message_id", resp.ID).Str("phone", phone).Int("count", len(contacts)).Msg("Contacts list sent")
+	return resp.ID, resp.Timestamp, nil
+}
+
+// generateVcard gera vCard formatado corretamente para WhatsApp
+func generateVcard(contactName string, contactPhone string, customVcard string) string {
+	// Se vCard customizado foi fornecido, usar ele
+	if customVcard != "" {
+		return customVcard
+	}
+
+	// Gerar vCard automaticamente com formato correto para WhatsApp
+	// Remover caracteres não numéricos do telefone
+	cleanPhone := ""
+	for _, c := range contactPhone {
+		if c >= '0' && c <= '9' {
+			cleanPhone += string(c)
+		}
+	}
+
+	// Formatar telefone para exibição (exemplo: +55 99 98176-9536)
+	formattedPhone := formatPhoneForDisplay(cleanPhone)
+
+	// Criar vCard com waid (WhatsApp ID) - essencial para mostrar botões
+	return fmt.Sprintf(`BEGIN:VCARD
+VERSION:3.0
+FN:%s
+TEL;type=CELL;type=VOICE;waid=%s:%s
+END:VCARD`, contactName, cleanPhone, formattedPhone)
+}
+
+// formatPhoneForDisplay formata número de telefone para exibição
+func formatPhoneForDisplay(phone string) string {
+	// Se for número brasileiro (55)
+	if len(phone) >= 12 && phone[:2] == "55" {
+		// Formato: +55 99 98176-9536
+		ddd := phone[2:4]
+		if len(phone) == 13 { // Celular com 9 dígitos
+			return fmt.Sprintf("+55 %s %s-%s", ddd, phone[4:9], phone[9:13])
+		} else if len(phone) == 12 { // Fixo com 8 dígitos
+			return fmt.Sprintf("+55 %s %s-%s", ddd, phone[4:8], phone[8:12])
+		}
+	}
+
+	// Formato genérico
+	if len(phone) > 0 {
+		return "+" + phone
+	}
+
+	return phone
+}
+
+// SendSticker envia sticker a partir de URL ou base64
+func (m *SessionManager) SendSticker(ctx context.Context, client *whatsmeow.Client, phone string, stickerURL string, stickerBase64 string) (string, time.Time, error) {
+	recipient, err := parseJID(phone)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
+	}
+
+	var imageData []byte
+	var mimeType string
+
+	// Determinar qual fonte usar (base64 tem prioridade)
+	mediaSource := stickerURL
+	if stickerBase64 != "" {
+		mediaSource = stickerBase64
+	}
+
+	if mediaSource == "" {
+		return "", time.Time{}, fmt.Errorf("sticker (URL) or stickerBase64 is required")
+	}
+
+	// Download ou decode do sticker
+	imageData, mimeType, err = downloadOrDecodeMedia(mediaSource)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to get sticker: %w", err)
+	}
+
+	// Stickers devem ser WebP
+	if mimeType != "image/webp" && mimeType != "image/png" && mimeType != "image/jpeg" {
+		logger.Log.Warn().Str("mime", mimeType).Msg("Sticker should be image/webp, image/png or image/jpeg")
+	}
+
+	// Upload do sticker
+	uploaded, err := client.Upload(ctx, imageData, whatsmeow.MediaImage)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to upload sticker: %w", err)
+	}
+
+	msg := &waProto.Message{
+		StickerMessage: &waProto.StickerMessage{
+			URL:           proto.String(uploaded.URL),
+			DirectPath:    proto.String(uploaded.DirectPath),
+			MediaKey:      uploaded.MediaKey,
+			Mimetype:      proto.String("image/webp"),
+			FileEncSHA256: uploaded.FileEncSHA256,
+			FileSHA256:    uploaded.FileSHA256,
+			FileLength:    proto.Uint64(uint64(len(imageData))),
+		},
+	}
+
+	resp, err := client.SendMessage(ctx, recipient, msg)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to send sticker: %w", err)
+	}
+
+	logger.Log.Info().Str("message_id", resp.ID).Str("phone", phone).Int("size", len(imageData)).Msg("Sticker sent")
 	return resp.ID, resp.Timestamp, nil
 }
 
@@ -464,14 +618,30 @@ func (m *SessionManager) SendReaction(ctx context.Context, client *whatsmeow.Cli
 		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
 	}
 
+	// Determinar se a mensagem é nossa (FromMe)
+	// Se messageID começa com "me:", é nossa mensagem
+	fromMe := false
+	actualMessageID := messageID
+	if len(messageID) > 3 && messageID[:3] == "me:" {
+		fromMe = true
+		actualMessageID = messageID[3:] // Remove o prefixo "me:"
+	}
+
+	// Se emoji vazio, remove a reação
+	reactionText := emoji
+	if emoji == "remove" || emoji == "" {
+		reactionText = ""
+	}
+
 	msg := &waProto.Message{
 		ReactionMessage: &waProto.ReactionMessage{
 			Key: &waProto.MessageKey{
 				RemoteJID: proto.String(recipient.String()),
-				FromMe:    proto.Bool(false),
-				ID:        proto.String(messageID),
+				FromMe:    proto.Bool(fromMe),
+				ID:        proto.String(actualMessageID),
 			},
-			Text:              proto.String(emoji),
+			Text:              proto.String(reactionText),
+			GroupingKey:       proto.String(reactionText),
 			SenderTimestampMS: proto.Int64(time.Now().UnixMilli()),
 		},
 	}
@@ -481,7 +651,7 @@ func (m *SessionManager) SendReaction(ctx context.Context, client *whatsmeow.Cli
 		return "", time.Time{}, fmt.Errorf("failed to send reaction: %w", err)
 	}
 
-	logger.Log.Info().Str("message_id", resp.ID).Str("phone", phone).Str("emoji", emoji).Msg("Reaction sent")
+	logger.Log.Info().Str("message_id", resp.ID).Str("phone", phone).Str("emoji", emoji).Bool("fromMe", fromMe).Msg("Reaction sent")
 	return resp.ID, resp.Timestamp, nil
 }
 
@@ -498,7 +668,7 @@ func (m *SessionManager) MarkAsRead(ctx context.Context, client *whatsmeow.Clien
 		ids[i] = types.MessageID(id)
 	}
 
-	err = client.MarkRead(ids, time.Now(), recipient, recipient)
+	err = client.MarkRead(ctx, ids, time.Now(), recipient, recipient)
 	if err != nil {
 		return fmt.Errorf("failed to mark as read: %w", err)
 	}
@@ -541,25 +711,11 @@ func (m *SessionManager) EditMessage(ctx context.Context, client *whatsmeow.Clie
 		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
 	}
 
-	msg := &waProto.Message{
-		EditedMessage: &waProto.FutureProofMessage{
-			Message: &waProto.Message{
-				Conversation: proto.String(newText),
-			},
-		},
-		ProtocolMessage: &waProto.ProtocolMessage{
-			Key: &waProto.MessageKey{
-				RemoteJID: proto.String(recipient.String()),
-				FromMe:    proto.Bool(true),
-				ID:        proto.String(messageID),
-			},
-			Type:                waProto.ProtocolMessage_MESSAGE_EDIT.Enum(),
-			EditedMessage:       &waProto.Message{Conversation: proto.String(newText)},
-			TimestampMS:         proto.Int64(time.Now().UnixMilli()),
-		},
-	}
+	// Usar EditMessage do whatsmeow (método correto)
+	resp, err := client.SendMessage(ctx, recipient, client.BuildEdit(recipient, messageID, &waProto.Message{
+		Conversation: proto.String(newText),
+	}))
 
-	resp, err := client.SendMessage(ctx, recipient, msg)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to edit message: %w", err)
 	}

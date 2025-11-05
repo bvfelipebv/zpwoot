@@ -36,8 +36,9 @@ type SendDocumentRequest struct {
 
 // SendStickerRequest representa uma requisição para enviar sticker
 type SendStickerRequest struct {
-	Phone   string `json:"phone" binding:"required" example:"5511999999999"`
-	Sticker string `json:"sticker" binding:"required" example:"https://example.com/sticker.webp"`
+	Phone         string `json:"phone" binding:"required" example:"5511999999999"`
+	Sticker       string `json:"sticker,omitempty" example:"https://example.com/sticker.webp"`
+	StickerBase64 string `json:"stickerBase64,omitempty" example:"data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA="`
 }
 
 // SendMediaRequest representa uma requisição para enviar mídia genérica
@@ -54,14 +55,21 @@ type SendLocationRequest struct {
 	Latitude  float64 `json:"latitude" binding:"required" example:"-23.5505"`
 	Longitude float64 `json:"longitude" binding:"required" example:"-46.6333"`
 	Name      string  `json:"name,omitempty" example:"São Paulo"`
-	Address   string  `json:"address,omitempty" example:"São Paulo, Brazil"`
 }
 
-// SendContactRequest representa uma requisição para enviar contato
+// ContactInfo representa informações de um contato
+type ContactInfo struct {
+	Name  string `json:"name" binding:"required" example:"John Doe"`
+	Phone string `json:"phone" binding:"required" example:"5511888888888"`
+	Vcard string `json:"vcard,omitempty" example:"BEGIN:VCARD\\nVERSION:3.0\\nFN:John Doe\\nTEL;waid=5511888888888:+55 11 88888-8888\\nEND:VCARD"`
+}
+
+// SendContactRequest representa uma requisição para enviar contato(s)
+// Se contacts tiver apenas 1 item, envia ContactMessage (contato único)
+// Se contacts tiver múltiplos itens, envia ContactsArrayMessage (lista de contatos)
 type SendContactRequest struct {
-	Phone        string `json:"phone" binding:"required" example:"5511999999999"`
-	ContactPhone string `json:"contactPhone" binding:"required" example:"5511888888888"`
-	ContactName  string `json:"contactName" binding:"required" example:"John Doe"`
+	Phone    string        `json:"phone" binding:"required" example:"5511999999999"`
+	Contacts []ContactInfo `json:"contacts" binding:"required,min=1"`
 }
 
 // SendReactionRequest representa uma requisição para enviar reação
