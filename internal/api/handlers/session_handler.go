@@ -1,0 +1,327 @@
+package handlers
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"zpmeow/internal/api/dto"
+	"zpmeow/internal/model"
+	"zpmeow/internal/service"
+	"zpmeow/pkg/logger"
+)
+
+// SessionHandler gerencia requisições HTTP de sessões
+type SessionHandler struct {
+	sessionManager *service.SessionManager
+	pairingService *service.PairingService
+}
+
+// NewSessionHandler cria um novo handler de sessões
+func NewSessionHandler(sessionManager *service.SessionManager, pairingService *service.PairingService) *SessionHandler {
+	return &SessionHandler{
+		sessionManager: sessionManager,
+		pairingService: pairingService,
+	}
+}
+
+// CreateSession cria uma nova sessão
+// @Summary Criar nova sessão
+// @Tags Sessions
+// @Accept json
+// @Produce json
+// @Param request body dto.CreateSessionRequest true "Dados da sessão"
+// @Success 201 {object} dto.SessionResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /sessions/create [post]
+func (h *SessionHandler) CreateSession(c *gin.Context) {
+	var req dto.CreateSessionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "invalid_request",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	session, err := h.sessionManager.CreateSession(c.Request.Context(), req.Name, req.WebhookURL)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to create session")
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "create_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, toSessionResponse(session))
+}
+
+// GetSessions lista todas as sessões
+// @Summary Listar sessões
+// @Tags Sessions
+// @Produce json
+// @Success 200 {object} dto.SessionListResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /sessions/list [get]
+func (h *SessionHandler) GetSessions(c *gin.Context) {
+	sessions, err := h.sessionManager.ListSessions(c.Request.Context())
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to list sessions")
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "list_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	responses := make([]dto.SessionResponse, len(sessions))
+	for i, session := range sessions {
+		responses[i] = toSessionResponse(session)
+	}
+
+	c.JSON(http.StatusOK, dto.SessionListResponse{
+		Sessions: responses,
+		Total:    len(responses),
+	})
+}
+
+// GetSession obtém detalhes de uma sessão
+// @Summary Obter detalhes da sessão
+// @Tags Sessions
+// @Produce json
+// @Param id path string true "Session ID"
+// @Success 200 {object} dto.SessionResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /sessions/{id}/info [get]
+func (h *SessionHandler) GetSession(c *gin.Context) {
+	sessionID := c.Param("id")
+
+	session, err := h.sessionManager.GetSession(c.Request.Context(), sessionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{
+			Error:   "session_not_found",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, toSessionResponse(session))
+}
+
+// DeleteSession deleta uma sessão
+// @Summary Deletar sessão
+// @Tags Sessions
+// @Produce json
+// @Param id path string true "Session ID"
+// @Success 200 {object} dto.SuccessResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /sessions/{id}/delete [delete]
+func (h *SessionHandler) DeleteSession(c *gin.Context) {
+	sessionID := c.Param("id")
+
+	if err := h.sessionManager.DeleteSession(c.Request.Context(), sessionID); err != nil {
+		logger.Log.Error().Err(err).Str("session_id", sessionID).Msg("Failed to delete session")
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "delete_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessResponse{
+		Success: true,
+		Message: "Session deleted successfully",
+	})
+}
+
+// ConnectSession conecta uma sessão ao WhatsApp
+// @Summary Conectar sessão
+// @Tags Sessions
+// @Produce json
+// @Param id path string true "Session ID"
+// @Success 200 {object} dto.SuccessResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /sessions/{id}/connect [post]
+func (h *SessionHandler) ConnectSession(c *gin.Context) {
+	sessionID := c.Param("id")
+
+	if err := h.sessionManager.ConnectSession(c.Request.Context(), sessionID); err != nil {
+		logger.Log.Error().Err(err).Str("session_id", sessionID).Msg("Failed to connect session")
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "connect_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessResponse{
+		Success: true,
+		Message: "Session connecting",
+	})
+}
+
+// DisconnectSession desconecta uma sessão
+// @Summary Desconectar sessão
+// @Tags Sessions
+// @Produce json
+// @Param id path string true "Session ID"
+// @Success 200 {object} dto.SuccessResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /sessions/{id}/disconnect [post]
+func (h *SessionHandler) DisconnectSession(c *gin.Context) {
+	sessionID := c.Param("id")
+
+	if err := h.sessionManager.DisconnectSession(c.Request.Context(), sessionID); err != nil {
+		logger.Log.Error().Err(err).Str("session_id", sessionID).Msg("Failed to disconnect session")
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "disconnect_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessResponse{
+		Success: true,
+		Message: "Session disconnected",
+	})
+}
+
+// PairPhone inicia pareamento com número de telefone
+// @Summary Parear com telefone
+// @Tags Sessions
+// @Accept json
+// @Produce json
+// @Param id path string true "Session ID"
+// @Param request body dto.PairPhoneRequest true "Número de telefone"
+// @Success 200 {object} dto.PairPhoneResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /sessions/{id}/pair [post]
+func (h *SessionHandler) PairPhone(c *gin.Context) {
+	sessionID := c.Param("id")
+
+	var req dto.PairPhoneRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "invalid_request",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	code, err := h.pairingService.PairWithPhone(c.Request.Context(), sessionID, req.PhoneNumber)
+	if err != nil {
+		logger.Log.Error().Err(err).Str("session_id", sessionID).Msg("Failed to pair with phone")
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "pairing_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.PairPhoneResponse{
+		SessionID:   sessionID,
+		PhoneNumber: req.PhoneNumber,
+		PairingCode: code,
+		Message:     "Enter the pairing code on your phone",
+	})
+}
+
+// GetSessionStatus obtém status detalhado da sessão
+// @Summary Obter status da sessão
+// @Tags Sessions
+// @Produce json
+// @Param id path string true "Session ID"
+// @Success 200 {object} dto.SessionStatusResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /sessions/{id}/status [get]
+func (h *SessionHandler) GetSessionStatus(c *gin.Context) {
+	sessionID := c.Param("id")
+
+	status, err := h.sessionManager.GetSessionStatus(c.Request.Context(), sessionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{
+			Error:   "session_not_found",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, status)
+}
+
+// UpdateSessionWebhook atualiza configurações de webhook
+// @Summary Atualizar webhook
+// @Tags Sessions
+// @Accept json
+// @Produce json
+// @Param id path string true "Session ID"
+// @Param request body dto.UpdateWebhookRequest true "Configurações de webhook"
+// @Success 200 {object} dto.SuccessResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /sessions/{id}/webhook [put]
+func (h *SessionHandler) UpdateSessionWebhook(c *gin.Context) {
+	sessionID := c.Param("id")
+
+	var req dto.UpdateWebhookRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "invalid_request",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Converter webhook_events para string JSON
+	webhookEventsJSON, err := json.Marshal(req.WebhookEvents)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "invalid_webhook_events",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	if err := h.sessionManager.UpdateWebhook(c.Request.Context(), sessionID, req.WebhookURL, string(webhookEventsJSON)); err != nil {
+		logger.Log.Error().Err(err).Str("session_id", sessionID).Msg("Failed to update webhook")
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "update_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessResponse{
+		Success: true,
+		Message: "Webhook updated successfully",
+	})
+}
+
+// toSessionResponse converte model.Session para dto.SessionResponse
+func toSessionResponse(session *model.Session) dto.SessionResponse {
+	// Deserializar webhook_events se necessário
+	var webhookEvents []string
+	if session.WebhookEvents != "" {
+		json.Unmarshal([]byte(session.WebhookEvents), &webhookEvents)
+	}
+
+	return dto.SessionResponse{
+		ID:            session.ID,
+		Name:          session.Name,
+		JID:           session.DeviceJID,
+		Status:        session.Status,
+		WebhookURL:    session.WebhookURL,
+		WebhookEvents: webhookEvents,
+		CreatedAt:     session.CreatedAt,
+		UpdatedAt:     session.UpdatedAt,
+	}
+}
