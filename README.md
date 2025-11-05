@@ -51,20 +51,48 @@ cp .env.example .env
 # Edite o .env e configure sua API_KEY
 nano .env
 
+# Setup inicial (instala ferramentas e gera documentação)
+make setup
+
 # Inicie o PostgreSQL
-docker-compose up -d postgres
+make db-up
 
-# Compile o projeto
-go build -o bin/zpmeow ./cmd/server/main.go
+# Compile e execute
+make start
+```
 
-# Execute
-./bin/zpmeow
+### Comandos Make Disponíveis
+
+```bash
+# Ver todos os comandos disponíveis
+make help
+
+# Comandos principais
+make build          # Compila o projeto
+make run            # Executa sem compilar
+make start          # Compila e executa
+make kill           # Mata processos na porta 8080
+make swagger        # Gera documentação Swagger
+
+# Docker
+make db-up          # Inicia PostgreSQL
+make db-down        # Para PostgreSQL
+make docker-up      # Inicia todos os containers
+make docker-down    # Para todos os containers
+
+# Desenvolvimento
+make dev            # Modo desenvolvimento com hot reload
+make test           # Executa testes
+make fmt            # Formata código
+make clean          # Limpa arquivos compilados
 ```
 
 ### Verificar Status
 
 ```bash
 curl http://localhost:8080/health
+# ou
+make health
 ```
 
 ## 🐳 Docker
@@ -139,11 +167,19 @@ GET /health
 
 ## 🔐 Autenticação
 
-A API suporta 3 métodos:
+A API usa autenticação simples via header:
 
-1. **Bearer Token**: `Authorization: Bearer your-api-key`
-2. **Header**: `X-API-Key: your-api-key`
-3. **Query**: `?api_key=your-api-key`
+**Header**: `apikey: your-api-key`
+
+**Exemplo:**
+```bash
+curl -H "apikey: sldkfjsldkflskdfjlsd" http://localhost:8080/sessions/list
+```
+
+Configure sua API Key no arquivo `.env`:
+```bash
+API_KEY=sldkfjsldkflskdfjlsd
+```
 
 ## 📝 Licença
 

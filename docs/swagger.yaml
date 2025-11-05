@@ -178,9 +178,7 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
-      - BearerAuth: []
       - ApiKeyAuth: []
-      - ApiKeyQuery: []
       summary: Conectar sessão
       tags:
       - Sessions
@@ -209,9 +207,7 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
-      - BearerAuth: []
       - ApiKeyAuth: []
-      - ApiKeyQuery: []
       summary: Deletar sessão
       tags:
       - Sessions
@@ -240,9 +236,7 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
-      - BearerAuth: []
       - ApiKeyAuth: []
-      - ApiKeyQuery: []
       summary: Desconectar sessão
       tags:
       - Sessions
@@ -271,9 +265,7 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
-      - BearerAuth: []
       - ApiKeyAuth: []
-      - ApiKeyQuery: []
       summary: Obter detalhes da sessão
       tags:
       - Sessions
@@ -311,9 +303,7 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
-      - BearerAuth: []
       - ApiKeyAuth: []
-      - ApiKeyQuery: []
       summary: Parear com telefone
       tags:
       - Sessions
@@ -342,9 +332,7 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
-      - BearerAuth: []
       - ApiKeyAuth: []
-      - ApiKeyQuery: []
       summary: Obter status da sessão
       tags:
       - Sessions
@@ -381,9 +369,7 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
-      - BearerAuth: []
       - ApiKeyAuth: []
-      - ApiKeyQuery: []
       summary: Atualizar webhook
       tags:
       - Sessions
@@ -415,9 +401,7 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
-      - BearerAuth: []
       - ApiKeyAuth: []
-      - ApiKeyQuery: []
       summary: Criar nova sessão
       tags:
       - Sessions
@@ -436,26 +420,14 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
-      - BearerAuth: []
       - ApiKeyAuth: []
-      - ApiKeyQuery: []
       summary: Listar sessões
       tags:
       - Sessions
 securityDefinitions:
   ApiKeyAuth:
-    description: Token de autenticação da API
+    description: 'Insira sua API Key (exemplo: sldkfjsldkflskdfjlsd)'
     in: header
-    name: X-API-Key
-    type: apiKey
-  ApiKeyQuery:
-    description: Token de autenticação da API via query parameter
-    in: query
-    name: api_key
-    type: apiKey
-  BearerAuth:
-    description: Digite "Bearer" seguido do seu token de API
-    in: header
-    name: Authorization
+    name: apikey
     type: apiKey
 swagger: "2.0"

@@ -11,10 +11,7 @@ import (
 )
 
 // AuthenticateGlobal middleware para autenticação via API Key
-// Suporta 3 métodos:
-// 1. Authorization: Bearer <token>
-// 2. X-API-Key: <token>
-// 3. Query param: ?api_key=<token>
+// Usa apenas o header: apikey: <seu_token>
 func AuthenticateGlobal() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Obter API Key configurada
@@ -27,8 +24,8 @@ func AuthenticateGlobal() gin.HandlerFunc {
 			return
 		}
 
-		// Tentar obter API Key de diferentes fontes
-		apiKey := extractAPIKey(c)
+		// Obter API Key do header "apikey"
+		apiKey := strings.TrimSpace(c.GetHeader("apikey"))
 
 		// Validar API Key
 		if apiKey == "" {
@@ -39,7 +36,7 @@ func AuthenticateGlobal() gin.HandlerFunc {
 
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error":   "unauthorized",
-				"message": "API key is required",
+				"message": "API key is required. Use header: apikey: <your_key>",
 			})
 			c.Abort()
 			return
@@ -69,39 +66,12 @@ func AuthenticateGlobal() gin.HandlerFunc {
 	}
 }
 
-// extractAPIKey extrai a API Key de diferentes fontes
-func extractAPIKey(c *gin.Context) string {
-	// 1. Tentar Authorization Bearer token
-	authHeader := c.GetHeader("Authorization")
-	if authHeader != "" {
-		// Formato: "Bearer <token>"
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
-			return strings.TrimSpace(parts[1])
-		}
-	}
-
-	// 2. Tentar X-API-Key header
-	apiKeyHeader := c.GetHeader("X-API-Key")
-	if apiKeyHeader != "" {
-		return strings.TrimSpace(apiKeyHeader)
-	}
-
-	// 3. Tentar query parameter
-	apiKeyQuery := c.Query("api_key")
-	if apiKeyQuery != "" {
-		return strings.TrimSpace(apiKeyQuery)
-	}
-
-	return ""
-}
-
 // CORS middleware para permitir requisições cross-origin
 func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-API-Key, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, apikey, accept, origin, Cache-Control, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
 
 		if c.Request.Method == "OPTIONS" {

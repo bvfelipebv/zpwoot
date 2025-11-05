@@ -37,20 +37,10 @@ import (
 // @host      localhost:8080
 // @BasePath  /
 
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
-// @description Digite "Bearer" seguido do seu token de API
-
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
-// @name X-API-Key
-// @description Token de autenticação da API
-
-// @securityDefinitions.apikey ApiKeyQuery
-// @in query
-// @name api_key
-// @description Token de autenticação da API via query parameter
+// @name apikey
+// @description Insira sua API Key (exemplo: sldkfjsldkflskdfjlsd)
 
 func main() {
 	// Initialize logger

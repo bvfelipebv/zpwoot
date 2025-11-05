@@ -36,9 +36,7 @@ func NewSessionHandler(sessionManager *service.SessionManager, pairingService *s
 // @Success 201 {object} dto.SessionResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Security BearerAuth
 // @Security ApiKeyAuth
-// @Security ApiKeyQuery
 // @Router /sessions/create [post]
 func (h *SessionHandler) CreateSession(c *gin.Context) {
 	var req dto.CreateSessionRequest
@@ -70,9 +68,7 @@ func (h *SessionHandler) CreateSession(c *gin.Context) {
 // @Produce json
 // @Success 200 {object} dto.SessionListResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Security BearerAuth
 // @Security ApiKeyAuth
-// @Security ApiKeyQuery
 // @Router /sessions/list [get]
 func (h *SessionHandler) GetSessions(c *gin.Context) {
 	sessions, err := h.sessionManager.ListSessions(c.Request.Context())
@@ -105,9 +101,7 @@ func (h *SessionHandler) GetSessions(c *gin.Context) {
 // @Success 200 {object} dto.SessionResponse
 // @Failure 404 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Security BearerAuth
 // @Security ApiKeyAuth
-// @Security ApiKeyQuery
 // @Router /sessions/{id}/info [get]
 func (h *SessionHandler) GetSession(c *gin.Context) {
 	sessionID := c.Param("id")
@@ -133,9 +127,7 @@ func (h *SessionHandler) GetSession(c *gin.Context) {
 // @Success 200 {object} dto.SuccessResponse
 // @Failure 404 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Security BearerAuth
 // @Security ApiKeyAuth
-// @Security ApiKeyQuery
 // @Router /sessions/{id}/delete [delete]
 func (h *SessionHandler) DeleteSession(c *gin.Context) {
 	sessionID := c.Param("id")
@@ -164,9 +156,7 @@ func (h *SessionHandler) DeleteSession(c *gin.Context) {
 // @Success 200 {object} dto.SuccessResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Security BearerAuth
 // @Security ApiKeyAuth
-// @Security ApiKeyQuery
 // @Router /sessions/{id}/connect [post]
 func (h *SessionHandler) ConnectSession(c *gin.Context) {
 	sessionID := c.Param("id")
@@ -195,9 +185,7 @@ func (h *SessionHandler) ConnectSession(c *gin.Context) {
 // @Success 200 {object} dto.SuccessResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Security BearerAuth
 // @Security ApiKeyAuth
-// @Security ApiKeyQuery
 // @Router /sessions/{id}/disconnect [post]
 func (h *SessionHandler) DisconnectSession(c *gin.Context) {
 	sessionID := c.Param("id")
@@ -228,9 +216,7 @@ func (h *SessionHandler) DisconnectSession(c *gin.Context) {
 // @Success 200 {object} dto.PairPhoneResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Security BearerAuth
 // @Security ApiKeyAuth
-// @Security ApiKeyQuery
 // @Router /sessions/{id}/pair [post]
 func (h *SessionHandler) PairPhone(c *gin.Context) {
 	sessionID := c.Param("id")
@@ -271,9 +257,7 @@ func (h *SessionHandler) PairPhone(c *gin.Context) {
 // @Success 200 {object} dto.SessionStatusResponse
 // @Failure 404 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Security BearerAuth
 // @Security ApiKeyAuth
-// @Security ApiKeyQuery
 // @Router /sessions/{id}/status [get]
 func (h *SessionHandler) GetSessionStatus(c *gin.Context) {
 	sessionID := c.Param("id")
@@ -301,9 +285,7 @@ func (h *SessionHandler) GetSessionStatus(c *gin.Context) {
 // @Success 200 {object} dto.SuccessResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Security BearerAuth
 // @Security ApiKeyAuth
-// @Security ApiKeyQuery
 // @Router /sessions/{id}/webhook [put]
 func (h *SessionHandler) UpdateSessionWebhook(c *gin.Context) {
 	sessionID := c.Param("id")

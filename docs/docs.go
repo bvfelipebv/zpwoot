@@ -28,13 +28,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
-                    },
-                    {
                         "ApiKeyAuth": []
-                    },
-                    {
-                        "ApiKeyQuery": []
                     }
                 ],
                 "description": "Cria uma nova sessão do WhatsApp com nome e webhook opcional",
@@ -85,13 +79,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
-                    },
-                    {
                         "ApiKeyAuth": []
-                    },
-                    {
-                        "ApiKeyQuery": []
                     }
                 ],
                 "description": "Retorna a lista de todas as sessões criadas",
@@ -122,13 +110,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
-                    },
-                    {
                         "ApiKeyAuth": []
-                    },
-                    {
-                        "ApiKeyQuery": []
                     }
                 ],
                 "description": "Inicia a conexão de uma sessão com o WhatsApp",
@@ -174,13 +156,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "BearerAuth": []
-                    },
-                    {
                         "ApiKeyAuth": []
-                    },
-                    {
-                        "ApiKeyQuery": []
                     }
                 ],
                 "description": "Remove uma sessão e todos os seus dados associados",
@@ -226,13 +202,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
-                    },
-                    {
                         "ApiKeyAuth": []
-                    },
-                    {
-                        "ApiKeyQuery": []
                     }
                 ],
                 "description": "Desconecta uma sessão ativa do WhatsApp",
@@ -278,13 +248,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
-                    },
-                    {
                         "ApiKeyAuth": []
-                    },
-                    {
-                        "ApiKeyQuery": []
                     }
                 ],
                 "description": "Retorna informações detalhadas de uma sessão específica",
@@ -330,13 +294,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
-                    },
-                    {
                         "ApiKeyAuth": []
-                    },
-                    {
-                        "ApiKeyQuery": []
                     }
                 ],
                 "description": "Gera um código de pareamento para conectar o WhatsApp usando número de telefone",
@@ -394,13 +352,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
-                    },
-                    {
                         "ApiKeyAuth": []
-                    },
-                    {
-                        "ApiKeyQuery": []
                     }
                 ],
                 "description": "Retorna informações detalhadas sobre o status de conexão da sessão",
@@ -446,13 +398,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "BearerAuth": []
-                    },
-                    {
                         "ApiKeyAuth": []
-                    },
-                    {
-                        "ApiKeyQuery": []
                     }
                 ],
                 "description": "Atualiza a URL e eventos do webhook de uma sessão",
@@ -716,21 +662,9 @@ const docTemplate = `{
     },
     "securityDefinitions": {
         "ApiKeyAuth": {
-            "description": "Token de autenticação da API",
+            "description": "Insira sua API Key (exemplo: sldkfjsldkflskdfjlsd)",
             "type": "apiKey",
-            "name": "X-API-Key",
-            "in": "header"
-        },
-        "ApiKeyQuery": {
-            "description": "Token de autenticação da API via query parameter",
-            "type": "apiKey",
-            "name": "api_key",
-            "in": "query"
-        },
-        "BearerAuth": {
-            "description": "Digite \"Bearer\" seguido do seu token de API",
-            "type": "apiKey",
-            "name": "Authorization",
+            "name": "apikey",
             "in": "header"
         }
     }
