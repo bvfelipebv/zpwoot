@@ -206,22 +206,22 @@ docker-build: ## Constrói a imagem Docker
 .PHONY: docker-up
 docker-up: ## Inicia os containers Docker
 	@echo "$(YELLOW)Iniciando containers...$(NC)"
-	@docker-compose up -d
+	@docker compose up -d
 	@echo "$(GREEN)✅ Containers iniciados$(NC)"
 
 .PHONY: docker-down
 docker-down: ## Para os containers Docker
 	@echo "$(YELLOW)Parando containers...$(NC)"
-	@docker-compose down
+	@docker compose down
 	@echo "$(GREEN)✅ Containers parados$(NC)"
 
 .PHONY: docker-logs
 docker-logs: ## Mostra logs dos containers
-	@docker-compose logs -f
+	@docker compose logs -f
 
 .PHONY: docker-ps
 docker-ps: ## Lista containers em execução
-	@docker-compose ps
+	@docker compose ps
 
 .PHONY: docker-restart
 docker-restart: docker-down docker-up ## Reinicia os containers
@@ -229,23 +229,23 @@ docker-restart: docker-down docker-up ## Reinicia os containers
 .PHONY: db-up
 db-up: ## Inicia apenas o PostgreSQL
 	@echo "$(YELLOW)Iniciando PostgreSQL...$(NC)"
-	@docker-compose up -d postgres
+	@docker compose up -d postgres
 	@echo "$(GREEN)✅ PostgreSQL iniciado$(NC)"
 
 .PHONY: db-down
 db-down: ## Para o PostgreSQL
 	@echo "$(YELLOW)Parando PostgreSQL...$(NC)"
-	@docker-compose stop postgres
+	@docker compose stop postgres
 	@echo "$(GREEN)✅ PostgreSQL parado$(NC)"
 
 .PHONY: db-logs
 db-logs: ## Mostra logs do PostgreSQL
-	@docker-compose logs -f postgres
+	@docker compose logs -f postgres
 
 .PHONY: dbgate-up
 dbgate-up: ## Inicia DBGate (interface web do banco)
 	@echo "$(YELLOW)Iniciando DBGate...$(NC)"
-	@docker-compose up -d dbgate
+	@docker compose up -d dbgate
 	@echo "$(GREEN)✅ DBGate disponível em http://localhost:3000$(NC)"
 
 # ========================================

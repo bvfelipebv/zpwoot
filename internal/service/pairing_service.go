@@ -39,8 +39,8 @@ func (p *PairingService) GenerateQRCode(ctx context.Context, sessionID string) (
 		return "", fmt.Errorf("session already paired")
 	}
 
-	// Criar ou obter device
-	device, err := p.whatsappSvc.GetOrCreateDevice(ctx, sessionID)
+	// Criar ou obter device (sem JID pois ainda não está pareado)
+	device, err := p.whatsappSvc.GetOrCreateDevice(ctx, sessionID, "")
 	if err != nil {
 		return "", fmt.Errorf("failed to get device: %w", err)
 	}
@@ -120,8 +120,8 @@ func (p *PairingService) PairWithPhone(ctx context.Context, sessionID, phoneNumb
 		return "", fmt.Errorf("session already paired")
 	}
 
-	// Criar ou obter device
-	device, err := p.whatsappSvc.GetOrCreateDevice(ctx, sessionID)
+	// Criar ou obter device (sem JID pois ainda não está pareado)
+	device, err := p.whatsappSvc.GetOrCreateDevice(ctx, sessionID, "")
 	if err != nil {
 		return "", fmt.Errorf("failed to get device: %w", err)
 	}

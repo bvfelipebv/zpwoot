@@ -362,3 +362,32 @@ func toSessionResponse(session *model.Session) dto.SessionResponse {
 		UpdatedAt:     session.UpdatedAt,
 	}
 }
+
+// @Summary Obter QR Code
+// @Description Retorna o QR Code atual da sessão (em memória)
+// @Tags Sessions
+// @Produce json
+// @Param id path string true "Session ID"
+// @Success 200 {object} map[string]string
+// @Failure 404 {object} dto.ErrorResponse
+// @Security ApiKeyAuth
+// @Router /sessions/{id}/qr [get]
+func (h *SessionHandler) GetQRCode(c *gin.Context) {
+	sessionID := c.Param("id")
+
+	// Obter QR code da memória
+	qrCode, exists := h.sessionManager.GetQRCode(sessionID)
+	if !exists {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{
+			Error:   "qr_not_found",
+			Message: "No QR code available. Please connect the session first.",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"session_id": sessionID,
+		"qr_code":    qrCode,
+		"message":    "Scan this QR code with WhatsApp",
+	})
+}

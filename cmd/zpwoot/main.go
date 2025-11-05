@@ -97,6 +97,7 @@ func main() {
 
 	// Initialize handlers
 	sessionHandler := handlers.NewSessionHandler(sessionManager, pairingService)
+	messageHandler := handlers.NewMessageHandler(sessionManager)
 
 	// Setup Gin
 	if config.AppConfig.Environment == "production" {
@@ -107,7 +108,7 @@ func main() {
 	r.Use(gin.Recovery())
 
 	// Register routes
-	api.RegisterRoutes(r, sessionHandler)
+	api.RegisterRoutes(r, sessionHandler, messageHandler)
 
 	// Server info
 	port := config.AppConfig.Port

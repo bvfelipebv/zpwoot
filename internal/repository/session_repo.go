@@ -260,6 +260,54 @@ func (r *SessionRepository) UpdateStatus(ctx context.Context, id string, status 
 	return nil
 }
 
+func (r *SessionRepository) UpdateQRCode(ctx context.Context, id string, qrCode string) error {
+	query := `
+		UPDATE sessions
+		SET qr_code = $1, updated_at = NOW()
+		WHERE id = $2
+	`
+
+	result, err := r.db.ExecContext(ctx, query, qrCode, id)
+	if err != nil {
+		return fmt.Errorf("failed to update QR code: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("session not found")
+	}
+
+	return nil
+}
+
+func (r *SessionRepository) UpdateDeviceJID(ctx context.Context, id string, deviceJID string) error {
+	query := `
+		UPDATE sessions
+		SET device_jid = $1, updated_at = NOW()
+		WHERE id = $2
+	`
+
+	result, err := r.db.ExecContext(ctx, query, deviceJID, id)
+	if err != nil {
+		return fmt.Errorf("failed to update device JID: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("session not found")
+	}
+
+	return nil
+}
+
 func (r *SessionRepository) Count(ctx context.Context) (int, error) {
 	query := `SELECT COUNT(*) FROM sessions`
 

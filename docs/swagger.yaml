@@ -380,6 +380,33 @@ paths:
       summary: Parear com telefone
       tags:
       - Sessions
+  /sessions/{id}/qr:
+    get:
+      description: Retorna o QR Code atual da sessão (em memória)
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Obter QR Code
+      tags:
+      - Sessions
   /sessions/{id}/status:
     get:
       description: Retorna informações detalhadas sobre o status de conexão da sessão

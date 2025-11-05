@@ -44,23 +44,39 @@ func NewWhatsAppService(db *sql.DB) (*WhatsAppService, error) {
 	}, nil
 }
 
-func (s *WhatsAppService) GetOrCreateDevice(ctx context.Context, sessionID string) (*store.Device, error) {
-	// Tentar obter device existente
-	devices, err := s.container.GetAllDevices(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get devices: %w", err)
-	}
+func (s *WhatsAppService) GetOrCreateDevice(ctx context.Context, sessionID string, jid string) (*store.Device, error) {
+	// Se temos um JID, tentar obter device existente
+	if jid != "" {
+		parsedJID, err := types.ParseJID(jid)
+		if err != nil {
+			logger.Log.Warn().
+				Err(err).
+				Str("session_id", sessionID).
+				Str("jid", jid).
+				Msg("Failed to parse JID, creating new device")
+			return s.container.NewDevice(), nil
+		}
 
-	// Procurar device com o sessionID nos metadados
-	for _, device := range devices {
-		// Aqui você pode adicionar lógica para associar device com sessionID
-		// Por enquanto, retornamos o primeiro device se existir
+		device, err := s.container.GetDevice(ctx, parsedJID)
+		if err != nil {
+			logger.Log.Warn().
+				Err(err).
+				Str("session_id", sessionID).
+				Str("jid", jid).
+				Msg("Failed to get device, creating new one")
+			return s.container.NewDevice(), nil
+		}
+
 		if device != nil {
+			logger.Log.Info().
+				Str("session_id", sessionID).
+				Str("jid", jid).
+				Msg("Retrieved existing WhatsApp device")
 			return device, nil
 		}
 	}
 
-	// Se não encontrou, criar novo device
+	// Se não tem JID ou não encontrou device, criar novo
 	device := s.container.NewDevice()
 
 	logger.Log.Info().
