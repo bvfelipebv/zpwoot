@@ -125,8 +125,11 @@ vendor: ## Cria pasta vendor com dependências
 .PHONY: swagger
 swagger: ## Gera documentação Swagger
 	@echo "$(YELLOW)Gerando documentação Swagger...$(NC)"
-	@if command -v swag > /dev/null; then \
+	@if command -v swag > /dev/null 2>&1; then \
 		swag init -g $(MAIN_PATH) --output $(DOCS_DIR); \
+		echo "$(GREEN)✅ Documentação Swagger gerada em $(DOCS_DIR)$(NC)"; \
+	elif [ -f $(HOME)/go/bin/swag ]; then \
+		$(HOME)/go/bin/swag init -g $(MAIN_PATH) --output $(DOCS_DIR); \
 		echo "$(GREEN)✅ Documentação Swagger gerada em $(DOCS_DIR)$(NC)"; \
 	else \
 		echo "$(RED)❌ Swag não instalado. Execute: make install-tools$(NC)"; \

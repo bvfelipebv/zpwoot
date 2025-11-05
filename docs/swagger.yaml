@@ -137,7 +137,6 @@ definitions:
     - webhook_events
     - webhook_url
     type: object
-host: localhost:8080
 info:
   contact:
     email: support@swagger.io
