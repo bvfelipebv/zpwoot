@@ -4,37 +4,93 @@ networks:
   infraNet:
     external: true
 
+volumes:
+  postgres_data:
+  nats_data:
+  whatsapp_data:
+
 services:
   zpwoot:
-    image: zpwoot:latest
+    image: felipyfgs17/zpwoot:latest
     networks:
       - infraNet
     deploy:
-      replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 3
+        delay: 10s
+        max_attempts: 5
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.zpwoot.rule=Host(`zpwoot.local`)"
-        - "traefik.http.routers.zpwoot.entrypoints=web"
         - "traefik.http.services.zpwoot.loadbalancer.server.port=8080"
         - "traefik.docker.network=infraNet"
-        # HTTPS configuration (optional)
-        - "traefik.http.routers.zpwoot-secure.rule=Host(`zpwoot.local`)"
-        - "traefik.http.routers.zpwoot-secure.entrypoints=websecure"
-        - "traefik.http.routers.zpwoot-secure.tls=true"
     environment:
-      - ENV=production
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      - PORT=8080
+      - ENVIRONMENT=production
+      - DATABASE_DRIVER=postgres
+      - DATABASE_URL=postgres://zpwoot:zpwoot123@postgres:5432/zpwoot?sslmode=disable
+      - NATS_URL=nats://nats:4222
+      - API_KEY=your-secret-api-key-change-in-production
+      - LOG_LEVEL=info
+      - WHATSAPP_DATA_DIR=/app/data
+      - MAX_SESSIONS=10
+      - CONNECTION_TIMEOUT=30
+      - PAIRING_TIMEOUT=120
+      - AUTO_RESTORE_SESSIONS=true
+      - WEBHOOK_WORKERS=10
+      - WEBHOOK_TIMEOUT=30s
+      - WEBHOOK_MAX_RETRIES=3
+      - WEBHOOK_RETRY_BASE_DELAY=5s
+      - NATS_MAX_RECONNECT=10
+      - NATS_RECONNECT_WAIT=2s
+    volumes:
+      - whatsapp_data:/app/data
 
+  postgres:
+    image: postgres:16-alpine
+    networks:
+      - infraNet
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    environment:
+      - POSTGRES_USER=zpwoot
+      - POSTGRES_PASSWORD=zpwoot123
+      - POSTGRES_DB=zpwoot
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  nats:
+    image: nats:latest
+    networks:
+      - infraNet
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    command:
+      - "--http_port=8222"
+      - "--js"
