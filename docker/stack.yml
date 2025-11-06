@@ -5,12 +5,12 @@ networks:
     external: true
 
 volumes:
-  postgres_data:
-  nats_data:
-  whatsapp_data:
+  zpwoot_data_postgres:
+  zpwoot_data_nats:
+  zpwoot_data_zpwoot:
 
 services:
-  zpwoot:
+  zpwoot_api:
     image: felipyfgs17/zpwoot:latest
     networks:
       - infraNet
@@ -30,15 +30,22 @@ services:
         max_attempts: 5
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.zpwoot.rule=Host(`zpwoot.local`)"
-        - "traefik.http.services.zpwoot.loadbalancer.server.port=8080"
+        - "traefik.http.routers.zpwoot_api.rule=Host(`api.xapza.com`)"
+        - "traefik.http.routers.zpwoot_api.entrypoints=websecure"
+        - "traefik.http.routers.zpwoot_api.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.zpwoot_api.priority=1"
+        - "traefik.http.routers.zpwoot_api.service=zpwoot_api"
+        - "traefik.http.services.zpwoot_api.loadbalancer.server.port=8080"
+        - "traefik.http.services.zpwoot_api.loadbalancer.passhostheader=true"
+        - "traefik.http.middlewares.zpwoot_sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
+        - "traefik.http.routers.zpwoot_api.middlewares=zpwoot_sslheader@docker"
         - "traefik.docker.network=infraNet"
     environment:
       - PORT=8080
       - ENVIRONMENT=production
       - DATABASE_DRIVER=postgres
-      - DATABASE_URL=postgres://zpwoot:zpwoot123@postgres:5432/zpwoot?sslmode=disable
-      - NATS_URL=nats://nats:4222
+      - DATABASE_URL=postgres://zpwoot:zpwoot123@zpwoot_postgres:5432/zpwoot?sslmode=disable
+      - NATS_URL=nats://zpwoot_nats:4222
       - API_KEY=your-secret-api-key-change-in-production
       - LOG_LEVEL=info
       - WHATSAPP_DATA_DIR=/app/data
@@ -53,9 +60,9 @@ services:
       - NATS_MAX_RECONNECT=10
       - NATS_RECONNECT_WAIT=2s
     volumes:
-      - whatsapp_data:/app/data
+      - zpwoot_data_zpwoot:/app/data
 
-  postgres:
+  zpwoot_postgres:
     image: postgres:16-alpine
     networks:
       - infraNet
@@ -75,9 +82,9 @@ services:
       - POSTGRES_DB=zpwoot
       - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - zpwoot_data_postgres:/var/lib/postgresql/data
 
-  nats:
+  zpwoot_nats:
     image: nats:latest
     networks:
       - infraNet
@@ -94,3 +101,6 @@ services:
     command:
       - "--http_port=8222"
       - "--js"
+      - "--store_dir=/data"
+    volumes:
+      - zpwoot_data_nats:/data

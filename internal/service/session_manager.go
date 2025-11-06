@@ -2,18 +2,30 @@ package service
 
 import (
 	"context"
-	"encoding/json"
+	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"sync"
+	"time"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/mdp/qrterminal/v3"
+	"github.com/skip2/go-qrcode"
 	"go.mau.fi/whatsmeow"
+	"golang.org/x/net/proxy"
 
 	"zpwoot/internal/model"
 	"zpwoot/internal/repository"
 	"zpwoot/pkg/logger"
+)
+
+var (
+	// Map de canais kill para controlar sessões: sessionID -> chan bool
+	killChannels = make(map[string]chan bool)
+	killMux      sync.RWMutex
 )
 
 type SessionManager struct {
@@ -24,9 +36,9 @@ type SessionManager struct {
 	clients    map[string]*whatsmeow.Client
 	clientsMux sync.RWMutex
 
-	// Map de QR codes em memória: sessionID -> QR code string
-	qrCodes    map[string]string
-	qrCodesMux sync.RWMutex
+	// Map de HTTP clients para cada sessão (para proxy support)
+	httpClients    map[string]*resty.Client
+	httpClientsMux sync.RWMutex
 
 	// Event handler
 	eventHandler *EventHandler
@@ -42,7 +54,7 @@ func NewSessionManager(
 		whatsappSvc: whatsappSvc,
 		sessionRepo: sessionRepo,
 		clients:     make(map[string]*whatsmeow.Client),
-		qrCodes:     make(map[string]string),
+		httpClients: make(map[string]*resty.Client),
 	}
 
 	// Criar event handler com webhook support
@@ -91,6 +103,21 @@ func (m *SessionManager) CreateSessionWithConfig(ctx context.Context, session *m
 	return nil
 }
 
+func (m *SessionManager) GetQRCode(sessionID string) (string, bool) {
+	// Buscar QR code do banco
+	ctx := context.Background()
+	session, err := m.sessionRepo.GetByID(ctx, sessionID)
+	if err != nil {
+		return "", false
+	}
+
+	if session.QRCode == "" {
+		return "", false
+	}
+
+	return session.QRCode, true
+}
+
 func (m *SessionManager) GetSession(ctx context.Context, sessionID string) (*model.Session, error) {
 	return m.sessionRepo.GetByID(ctx, sessionID)
 }
@@ -117,290 +144,6 @@ func (m *SessionManager) DeleteSession(ctx context.Context, sessionID string) er
 	return nil
 }
 
-func (m *SessionManager) ConnectSession(ctx context.Context, sessionID string) error {
-	// Buscar sessão
-	session, err := m.sessionRepo.GetByID(ctx, sessionID)
-	if err != nil {
-		return fmt.Errorf("session not found: %w", err)
-	}
-
-	// Verificar se já está conectado
-	if m.IsClientActive(sessionID) {
-		// Desconectar primeiro para reiniciar o processo
-		m.DisconnectSession(ctx, sessionID)
-	}
-
-	// Limpar QR code anterior da memória
-	m.qrCodesMux.Lock()
-	delete(m.qrCodes, sessionID)
-	m.qrCodesMux.Unlock()
-
-	// Atualizar status para connecting
-	if err := m.sessionRepo.UpdateStatus(ctx, sessionID, "connecting", false); err != nil {
-		logger.Log.Warn().Err(err).Msg("Failed to update session status")
-	}
-
-	// Criar ou obter device do whatsmeow (passar JID se existir)
-	device, err := m.whatsappSvc.GetOrCreateDevice(ctx, sessionID, session.DeviceJID)
-	if err != nil {
-		return fmt.Errorf("failed to get device: %w", err)
-	}
-
-	// Criar cliente WhatsApp
-	client := m.whatsappSvc.NewClient(device)
-
-	// Registrar event handlers
-	m.eventHandler.RegisterHandlers(client, sessionID)
-
-	// Adicionar ao map de clientes ativos
-	m.clientsMux.Lock()
-	m.clients[sessionID] = client
-	m.clientsMux.Unlock()
-
-	// Se não está pareado, iniciar processo de QR Code
-	if session.DeviceJID == "" {
-		// IMPORTANTE: Usar context.Background() para não cancelar quando a requisição HTTP terminar
-		qrChan, err := client.GetQRChannel(context.Background())
-		if err != nil {
-			// Se o erro for ErrQRStoreContainsID, significa que já está logado
-			if errors.Is(err, whatsmeow.ErrQRStoreContainsID) {
-				logger.Log.Info().
-					Str("session_id", sessionID).
-					Msg("Device already contains ID, connecting...")
-
-				if err := client.Connect(); err != nil {
-					m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
-					return fmt.Errorf("failed to connect: %w", err)
-				}
-
-				m.sessionRepo.UpdateStatus(ctx, sessionID, "connected", true)
-				return nil
-			}
-
-			m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
-			return fmt.Errorf("failed to get QR channel: %w", err)
-		}
-
-		// Conectar DEPOIS de obter o canal (como na wuzapi)
-		logger.Log.Info().
-			Str("session_id", sessionID).
-			Msg("Connecting to WhatsApp to generate QR codes...")
-
-		if err := client.Connect(); err != nil {
-			m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
-			return fmt.Errorf("failed to connect: %w", err)
-		}
-
-		logger.Log.Info().
-			Str("session_id", sessionID).
-			Msg("Connected successfully - waiting for QR codes...")
-
-		// Processar QR codes em goroutine (usar context.Background para não cancelar)
-		go m.handleQRCodes(context.Background(), sessionID, qrChan, client)
-
-		logger.Log.Info().
-			Str("session_id", sessionID).
-			Msg("QR code handler started - scan QR code to connect")
-	} else {
-		// Já está pareado, apenas conectar
-		if err := client.Connect(); err != nil {
-			return fmt.Errorf("failed to connect: %w", err)
-		}
-
-		logger.Log.Info().
-			Str("session_id", sessionID).
-			Msg("Session connecting - already paired")
-	}
-
-	return nil
-}
-
-func (m *SessionManager) handleQRCodes(ctx context.Context, sessionID string, qrChan <-chan whatsmeow.QRChannelItem, client *whatsmeow.Client) {
-	logger.Log.Info().
-		Str("session_id", sessionID).
-		Msg("Starting QR code handler - waiting for events...")
-
-	// Processar TODOS os eventos do canal
-	for evt := range qrChan {
-		logger.Log.Info().
-			Str("session_id", sessionID).
-			Str("event", evt.Event).
-			Msg("QR channel event received")
-
-		if evt.Event == "code" {
-			// Novo QR code gerado
-			// Salvar QR code em memória
-			m.qrCodesMux.Lock()
-			m.qrCodes[sessionID] = evt.Code
-			m.qrCodesMux.Unlock()
-
-			// Salvar QR code no banco
-			if err := m.sessionRepo.UpdateQRCode(ctx, sessionID, evt.Code); err != nil {
-				logger.Log.Error().
-					Err(err).
-					Str("session_id", sessionID).
-					Msg("Failed to save QR code to database")
-			}
-
-			// Exibir QR code no terminal
-			logger.Log.Info().
-				Str("session_id", sessionID).
-				Dur("timeout", evt.Timeout).
-				Msg("QR code generated - displaying in terminal")
-
-			fmt.Printf("\n=== QR Code for Session: %s (timeout: %v) ===\n", sessionID, evt.Timeout)
-			qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
-			fmt.Printf("=== Scan with WhatsApp to connect ===\n\n")
-
-			// Atualizar status para qr_code
-			if err := m.sessionRepo.UpdateStatus(ctx, sessionID, "qr_code", false); err != nil {
-				logger.Log.Warn().Err(err).Msg("Failed to update session status")
-			}
-
-		} else if evt.Event == "timeout" {
-			// QR code expirou sem ser escaneado
-			logger.Log.Warn().
-				Str("session_id", sessionID).
-				Msg("QR code timeout - no scan detected")
-
-			// Limpar QR code da memória e banco
-			m.qrCodesMux.Lock()
-			delete(m.qrCodes, sessionID)
-			m.qrCodesMux.Unlock()
-
-			m.sessionRepo.UpdateQRCode(ctx, sessionID, "")
-			m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
-
-			// Remover cliente
-			m.clientsMux.Lock()
-			delete(m.clients, sessionID)
-			m.clientsMux.Unlock()
-
-			return
-
-		} else if evt.Event == "success" {
-			// QR code escaneado com sucesso!
-			logger.Log.Info().
-				Str("session_id", sessionID).
-				Msg("QR code scanned successfully - pairing completed")
-
-			// Limpar QR code da memória e banco
-			m.qrCodesMux.Lock()
-			delete(m.qrCodes, sessionID)
-			m.qrCodesMux.Unlock()
-
-			m.sessionRepo.UpdateQRCode(ctx, sessionID, "")
-
-			// Atualizar status para connected (será confirmado pelo event handler)
-			m.sessionRepo.UpdateStatus(ctx, sessionID, "connected", true)
-
-			// Salvar JID no banco
-			if client.Store.ID != nil {
-				jid := client.Store.ID.String()
-				m.sessionRepo.UpdateDeviceJID(ctx, sessionID, jid)
-
-				logger.Log.Info().
-					Str("session_id", sessionID).
-					Str("jid", jid).
-					Msg("Device JID saved")
-			}
-
-			return
-
-		} else if evt.Event == "error" {
-			// Erro durante pareamento
-			logger.Log.Error().
-				Err(evt.Error).
-				Str("session_id", sessionID).
-				Msg("QR pairing error")
-
-			// Limpar e desconectar
-			m.qrCodesMux.Lock()
-			delete(m.qrCodes, sessionID)
-			m.qrCodesMux.Unlock()
-
-			m.sessionRepo.UpdateQRCode(ctx, sessionID, "")
-			m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
-
-			m.clientsMux.Lock()
-			delete(m.clients, sessionID)
-			m.clientsMux.Unlock()
-
-			if client != nil {
-				client.Disconnect()
-			}
-
-			return
-
-		} else {
-			// Outros eventos (err-unexpected-state, err-client-outdated, etc)
-			logger.Log.Warn().
-				Str("session_id", sessionID).
-				Str("event", evt.Event).
-				Msg("QR channel event")
-
-			// Para eventos de erro, limpar e desconectar
-			if evt.Event == "err-unexpected-state" || evt.Event == "err-client-outdated" || evt.Event == "err-scanned-without-multidevice" {
-				m.qrCodesMux.Lock()
-				delete(m.qrCodes, sessionID)
-				m.qrCodesMux.Unlock()
-
-				m.sessionRepo.UpdateQRCode(ctx, sessionID, "")
-				m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
-
-				m.clientsMux.Lock()
-				delete(m.clients, sessionID)
-				m.clientsMux.Unlock()
-
-				if client != nil {
-					client.Disconnect()
-				}
-
-				return
-			}
-		}
-	}
-
-	// Canal fechado
-	logger.Log.Warn().
-		Str("session_id", sessionID).
-		Bool("client_connected", client.IsConnected()).
-		Msg("QR channel closed unexpectedly")
-
-	// Se o cliente ainda está conectado, algo deu errado
-	if client.IsConnected() {
-		logger.Log.Info().
-			Str("session_id", sessionID).
-			Msg("Client still connected, waiting for pairing...")
-		// Não fazer nada, deixar o cliente conectado
-	} else {
-		logger.Log.Warn().
-			Str("session_id", sessionID).
-			Msg("Client disconnected, updating status")
-
-		// Limpar QR code
-		m.qrCodesMux.Lock()
-		delete(m.qrCodes, sessionID)
-		m.qrCodesMux.Unlock()
-
-		m.sessionRepo.UpdateQRCode(ctx, sessionID, "")
-		m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
-
-		// Remover cliente
-		m.clientsMux.Lock()
-		delete(m.clients, sessionID)
-		m.clientsMux.Unlock()
-	}
-}
-
-func (m *SessionManager) GetQRCode(sessionID string) (string, bool) {
-	m.qrCodesMux.RLock()
-	defer m.qrCodesMux.RUnlock()
-
-	qrCode, exists := m.qrCodes[sessionID]
-	return qrCode, exists
-}
-
 func (m *SessionManager) GetClient(sessionID string) (*whatsmeow.Client, error) {
 	m.clientsMux.RLock()
 	defer m.clientsMux.RUnlock()
@@ -417,38 +160,6 @@ func (m *SessionManager) GetClient(sessionID string) (*whatsmeow.Client, error) 
 	return client, nil
 }
 
-func (m *SessionManager) DisconnectSession(ctx context.Context, sessionID string) error {
-	m.clientsMux.Lock()
-	client, exists := m.clients[sessionID]
-	if exists {
-		delete(m.clients, sessionID)
-	}
-	m.clientsMux.Unlock()
-
-	if !exists {
-		return fmt.Errorf("session not connected")
-	}
-
-	// Limpar QR code da memória
-	m.qrCodesMux.Lock()
-	delete(m.qrCodes, sessionID)
-	m.qrCodesMux.Unlock()
-
-	// Desconectar cliente
-	client.Disconnect()
-
-	// Atualizar status no banco
-	if err := m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false); err != nil {
-		logger.Log.Warn().Err(err).Msg("Failed to update session status")
-	}
-
-	logger.Log.Info().
-		Str("session_id", sessionID).
-		Msg("Session disconnected")
-
-	return nil
-}
-
 func (m *SessionManager) IsClientActive(sessionID string) bool {
 	m.clientsMux.RLock()
 	defer m.clientsMux.RUnlock()
@@ -457,14 +168,371 @@ func (m *SessionManager) IsClientActive(sessionID string) bool {
 	return exists
 }
 
+func (m *SessionManager) GetActiveSessionsCount() int {
+	m.clientsMux.RLock()
+	defer m.clientsMux.RUnlock()
+	return len(m.clients)
+}
+
+// ConnectSession inicia conexão com WhatsApp (baseado em wuzapi startClient)
+func (m *SessionManager) ConnectSession(ctx context.Context, sessionID string) error {
+	logger.Log.Info().Str("session_id", sessionID).Msg("Starting WhatsApp connection")
+
+	// Buscar sessão
+	session, err := m.sessionRepo.GetByID(ctx, sessionID)
+	if err != nil {
+		return fmt.Errorf("session not found: %w", err)
+	}
+
+	// Verificar se já está conectado
+	if m.IsClientActive(sessionID) {
+		logger.Log.Warn().Str("session_id", sessionID).Msg("Session already active, disconnecting first")
+		m.DisconnectSession(ctx, sessionID)
+	}
+
+	// Criar canal kill para esta sessão
+	killMux.Lock()
+	killChannels[sessionID] = make(chan bool)
+	killMux.Unlock()
+
+	// Iniciar cliente em goroutine (como no wuzapi)
+	go m.startClient(sessionID, session.DeviceJID)
+
+	return nil
+}
+
+// startClient é a função principal de conexão (baseada no wuzapi)
+func (m *SessionManager) startClient(sessionID string, textJID string) {
+	logger.Log.Info().Str("session_id", sessionID).Str("jid", textJID).Msg("Starting websocket connection to WhatsApp")
+
+	ctx := context.Background()
+
+	// Constantes de retry (do wuzapi)
+	const maxConnectionRetries = 3
+	const connectionRetryBaseWait = 5 * time.Second
+
+	// Obter ou criar device
+	deviceStore, err := m.whatsappSvc.GetOrCreateDevice(ctx, textJID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to get device")
+		m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
+		return
+	}
+
+	// Criar cliente WhatsApp
+	client := m.whatsappSvc.NewClient(deviceStore, false)
+
+	// Adicionar ao map de clientes
+	m.clientsMux.Lock()
+	m.clients[sessionID] = client
+	m.clientsMux.Unlock()
+
+	// Configurar HTTP client com proxy support (do wuzapi)
+	httpClient := resty.New()
+	httpClient.SetRedirectPolicy(resty.FlexibleRedirectPolicy(15))
+	httpClient.SetTimeout(30 * time.Second)
+	httpClient.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+
+	// Buscar configuração de proxy do banco
+	session, err := m.sessionRepo.GetByID(ctx, sessionID)
+	if err == nil && session.ProxyConfig != nil && session.ProxyConfig.Enabled {
+		proxyURL := buildProxyURL(session.ProxyConfig)
+		if proxyURL != "" {
+			m.configureProxy(client, httpClient, proxyURL)
+		}
+	}
+
+	// Salvar HTTP client
+	m.httpClientsMux.Lock()
+	m.httpClients[sessionID] = httpClient
+	m.httpClientsMux.Unlock()
+
+	// Registrar event handlers
+	m.eventHandler.RegisterHandlers(client, sessionID)
+
+	// Verificar se precisa fazer pairing (QR code)
+	if client.Store.ID == nil {
+		// No ID stored, new login - precisa QR code
+		qrChan, err := client.GetQRChannel(context.Background())
+		if err != nil {
+			if !errors.Is(err, whatsmeow.ErrQRStoreContainsID) {
+				logger.Log.Error().Err(err).Msg("Failed to get QR channel")
+				m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
+				return
+			}
+		} else {
+			// Conectar ANTES de processar QR codes (IMPORTANTE!)
+			err = client.Connect()
+			if err != nil {
+				logger.Log.Error().Err(err).Msg("Failed to connect client")
+				m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
+				return
+			}
+
+			// Processar QR codes SÍNCRONAMENTE (como no wuzapi!)
+			// O loop só termina quando o canal fecha (após pareamento ou timeout)
+			for evt := range qrChan {
+				if evt.Event == "code" {
+					// Novo QR code gerado
+					logger.Log.Info().
+						Str("session_id", sessionID).
+						Msg("QR code received")
+
+					// Gerar imagem QR code base64
+					image, _ := qrcode.Encode(evt.Code, qrcode.Medium, 256)
+					base64QRCode := "data:image/png;base64," + base64.StdEncoding.EncodeToString(image)
+
+					// Salvar no banco
+					if err := m.sessionRepo.UpdateQRCode(ctx, sessionID, base64QRCode); err != nil {
+						logger.Log.Error().Err(err).Msg("Failed to save QR code")
+					}
+
+					// Atualizar status
+					m.sessionRepo.UpdateStatus(ctx, sessionID, "qr_code", false)
+
+					// Exibir QR code no terminal
+					fmt.Printf("\n========================================\n")
+					fmt.Printf("QR CODE for Session: %s\n", sessionID)
+					fmt.Printf("========================================\n")
+					qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
+					fmt.Printf("========================================\n\n")
+
+				} else if evt.Event == "timeout" {
+					logger.Log.Warn().Str("session_id", sessionID).Msg("QR code timeout - killing channel")
+
+					// Limpar QR code
+					m.sessionRepo.UpdateQRCode(ctx, sessionID, "")
+					m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
+
+					// Cleanup
+					m.cleanupSession(sessionID)
+
+					// Enviar kill signal
+					killMux.Lock()
+					if ch, exists := killChannels[sessionID]; exists {
+						ch <- true
+					}
+					killMux.Unlock()
+					return
+
+				} else if evt.Event == "success" {
+					logger.Log.Info().Str("session_id", sessionID).Msg("QR pairing ok!")
+
+					// Limpar QR code e atualizar status
+					m.sessionRepo.UpdateQRCode(ctx, sessionID, "")
+					m.sessionRepo.UpdateStatus(ctx, sessionID, "connected", true)
+
+					// Salvar JID
+					if client.Store.ID != nil {
+						m.sessionRepo.UpdateDeviceJID(ctx, sessionID, client.Store.ID.String())
+					}
+
+				} else {
+					logger.Log.Info().Str("session_id", sessionID).Str("event", evt.Event).Msg("Login event")
+				}
+			}
+			// Canal QR fechado - continuar para keep-alive loop
+		}
+	} else {
+		// Já está pareado, apenas conectar com retry
+		logger.Log.Info().Msg("Already logged in, connecting with retry logic")
+
+		var lastErr error
+		for attempt := 0; attempt < maxConnectionRetries; attempt++ {
+			if attempt > 0 {
+				waitTime := time.Duration(attempt) * connectionRetryBaseWait
+				logger.Log.Warn().
+					Int("attempt", attempt+1).
+					Int("max_retries", maxConnectionRetries).
+					Dur("wait_time", waitTime).
+					Msg("Retrying connection after delay")
+				time.Sleep(waitTime)
+			}
+
+			err = client.Connect()
+			if err == nil {
+				logger.Log.Info().
+					Int("attempt", attempt+1).
+					Msg("Successfully connected to WhatsApp")
+				break
+			}
+
+			lastErr = err
+			logger.Log.Warn().
+				Err(err).
+				Int("attempt", attempt+1).
+				Int("max_retries", maxConnectionRetries).
+				Msg("Failed to connect to WhatsApp")
+		}
+
+		if lastErr != nil {
+			logger.Log.Error().
+				Err(lastErr).
+				Str("session_id", sessionID).
+				Int("attempts", maxConnectionRetries).
+				Msg("Failed to connect after all retry attempts")
+
+			m.cleanupSession(sessionID)
+			m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
+			return
+		}
+	}
+
+	// Keep alive loop (do wuzapi) - mantém a conexão viva
+	m.keepAliveLoop(sessionID, client)
+}
+
+// configureProxy configura proxy para o cliente (do wuzapi)
+func (m *SessionManager) configureProxy(client *whatsmeow.Client, httpClient *resty.Client, proxyURL string) {
+	parsed, err := url.Parse(proxyURL)
+	if err != nil {
+		logger.Log.Warn().Err(err).Str("proxy", proxyURL).Msg("Invalid proxy URL")
+		return
+	}
+
+	logger.Log.Info().Str("proxy", proxyURL).Msg("Configuring proxy")
+
+	if parsed.Scheme == "socks5" || parsed.Scheme == "socks5h" {
+		dialer, err := proxy.FromURL(parsed, nil)
+		if err != nil {
+			logger.Log.Warn().Err(err).Msg("Failed to build SOCKS proxy dialer")
+		} else {
+			httpClient.SetProxy(proxyURL)
+			client.SetSOCKSProxy(dialer, whatsmeow.SetProxyOptions{})
+			logger.Log.Info().Msg("SOCKS proxy configured successfully")
+		}
+	} else {
+		httpClient.SetProxy(proxyURL)
+		client.SetProxyAddress(parsed.String(), whatsmeow.SetProxyOptions{})
+		logger.Log.Info().Msg("HTTP/HTTPS proxy configured successfully")
+	}
+}
+
+// keepAliveLoop mantém a conexão ativa (do wuzapi)
+func (m *SessionManager) keepAliveLoop(sessionID string, client *whatsmeow.Client) {
+	killMux.RLock()
+	killChan, exists := killChannels[sessionID]
+	killMux.RUnlock()
+
+	if !exists {
+		logger.Log.Error().Str("session_id", sessionID).Msg("Kill channel not found")
+		return
+	}
+
+	for {
+		select {
+		case <-killChan:
+			logger.Log.Info().Str("session_id", sessionID).Msg("Received kill signal")
+			client.Disconnect()
+			m.cleanupSession(sessionID)
+			m.sessionRepo.UpdateStatus(context.Background(), sessionID, "disconnected", false)
+			return
+		default:
+			time.Sleep(1000 * time.Millisecond)
+		}
+	}
+}
+
+// cleanupSession limpa recursos da sessão
+func (m *SessionManager) cleanupSession(sessionID string) {
+	m.clientsMux.Lock()
+	delete(m.clients, sessionID)
+	m.clientsMux.Unlock()
+
+	m.httpClientsMux.Lock()
+	delete(m.httpClients, sessionID)
+	m.httpClientsMux.Unlock()
+
+	killMux.Lock()
+	delete(killChannels, sessionID)
+	killMux.Unlock()
+}
+
+// DisconnectSession desconecta uma sessão
+func (m *SessionManager) DisconnectSession(ctx context.Context, sessionID string) error {
+	logger.Log.Info().Str("session_id", sessionID).Msg("Disconnecting session")
+
+	// Enviar sinal kill
+	killMux.Lock()
+	if killChan, exists := killChannels[sessionID]; exists {
+		select {
+		case killChan <- true:
+		default:
+		}
+	}
+	killMux.Unlock()
+
+	// Aguardar um pouco para cleanup
+	time.Sleep(500 * time.Millisecond)
+
+	// Garantir cleanup
+	m.cleanupSession(sessionID)
+
+	// Atualizar status no banco
+	if err := m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false); err != nil {
+		logger.Log.Warn().Err(err).Msg("Failed to update session status")
+	}
+
+	return nil
+}
+
+// RestoreAllSessions reconecta sessões que estavam conectadas (do wuzapi connectOnStartup)
+func (m *SessionManager) RestoreAllSessions(ctx context.Context) error {
+	sessions, err := m.sessionRepo.ListConnected(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list connected sessions: %w", err)
+	}
+
+	logger.Log.Info().
+		Int("count", len(sessions)).
+		Msg("Restoring connected sessions")
+
+	for _, session := range sessions {
+		logger.Log.Info().
+			Str("session_id", session.ID).
+			Str("name", session.Name).
+			Str("jid", session.DeviceJID).
+			Msg("Attempting to restore session")
+
+		// Criar canal kill
+		killMux.Lock()
+		killChannels[session.ID] = make(chan bool)
+		killMux.Unlock()
+
+		// Iniciar cliente em goroutine
+		go m.startClient(session.ID, session.DeviceJID)
+	}
+
+	return nil
+}
+
+// Shutdown desconecta todas as sessões
+func (m *SessionManager) Shutdown(ctx context.Context) error {
+	m.clientsMux.Lock()
+	sessionIDs := make([]string, 0, len(m.clients))
+	for sessionID := range m.clients {
+		sessionIDs = append(sessionIDs, sessionID)
+	}
+	m.clientsMux.Unlock()
+
+	logger.Log.Info().
+		Int("count", len(sessionIDs)).
+		Msg("Shutting down all sessions")
+
+	for _, sessionID := range sessionIDs {
+		m.DisconnectSession(ctx, sessionID)
+	}
+
+	return nil
+}
+
+// GetSessionStatus retorna status detalhado da sessão
 func (m *SessionManager) GetSessionStatus(ctx context.Context, sessionID string) (map[string]interface{}, error) {
-	// Buscar sessão do banco
 	session, err := m.sessionRepo.GetByID(ctx, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("session not found: %w", err)
 	}
 
-	// Verificar se tem cliente ativo
 	isActive := m.IsClientActive(sessionID)
 
 	status := map[string]interface{}{
@@ -478,10 +546,8 @@ func (m *SessionManager) GetSessionStatus(ctx context.Context, sessionID string)
 		"can_connect":   session.CanConnect(),
 	}
 
-	// Se tem cliente ativo, adicionar informações do cliente
 	if isActive {
-		client, _ := m.GetClient(sessionID)
-		if client != nil {
+		if client, _ := m.GetClient(sessionID); client != nil {
 			status["is_logged_in"] = client.IsLoggedIn()
 			status["is_connected"] = client.IsConnected()
 			if client.Store != nil && client.Store.ID != nil {
@@ -494,36 +560,7 @@ func (m *SessionManager) GetSessionStatus(ctx context.Context, sessionID string)
 	return status, nil
 }
 
-func (m *SessionManager) UpdateWebhook(ctx context.Context, sessionID, webhookURL, webhookEvents string) error {
-	session, err := m.sessionRepo.GetByID(ctx, sessionID)
-	if err != nil {
-		return fmt.Errorf("session not found: %w", err)
-	}
-
-	// Converter para novo formato
-	var events []string
-	if webhookEvents != "" {
-		json.Unmarshal([]byte(webhookEvents), &events)
-	}
-
-	session.WebhookConfig = &model.WebhookConfig{
-		Enabled: webhookURL != "",
-		URL:     webhookURL,
-		Events:  events,
-	}
-
-	if err := m.sessionRepo.Update(ctx, session); err != nil {
-		return fmt.Errorf("failed to update webhook: %w", err)
-	}
-
-	logger.Log.Info().
-		Str("session_id", sessionID).
-		Str("webhook_url", webhookURL).
-		Msg("Webhook updated")
-
-	return nil
-}
-
+// UpdateWebhookConfig atualiza configuração de webhook
 func (m *SessionManager) UpdateWebhookConfig(ctx context.Context, sessionID string, webhookConfig *model.WebhookConfig) error {
 	session, err := m.sessionRepo.GetByID(ctx, sessionID)
 	if err != nil {
@@ -545,69 +582,20 @@ func (m *SessionManager) UpdateWebhookConfig(ctx context.Context, sessionID stri
 	return nil
 }
 
-func (m *SessionManager) RestoreAllSessions(ctx context.Context) error {
-	// Buscar sessões conectadas
-	sessions, err := m.sessionRepo.ListConnected(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to list connected sessions: %w", err)
+func buildProxyURL(config *model.ProxyConfig) string {
+	if config == nil || !config.Enabled {
+		return ""
 	}
 
-	logger.Log.Info().
-		Int("count", len(sessions)).
-		Msg("Restoring connected sessions")
-
-	// Reconectar cada sessão
-	for _, session := range sessions {
-		if err := m.ConnectSession(ctx, session.ID); err != nil {
-			logger.Log.Error().
-				Err(err).
-				Str("session_id", session.ID).
-				Msg("Failed to restore session")
-			continue
+	auth := ""
+	if config.Username != "" {
+		auth = config.Username
+		if config.Password != "" {
+			auth += ":" + config.Password
 		}
-
-		logger.Log.Info().
-			Str("session_id", session.ID).
-			Str("name", session.Name).
-			Msg("Session restored")
+		auth += "@"
 	}
 
-	return nil
+	return fmt.Sprintf("%s://%s%s:%d", config.Protocol, auth, config.Host, config.Port)
 }
 
-func (m *SessionManager) Shutdown(ctx context.Context) error {
-	m.clientsMux.Lock()
-	defer m.clientsMux.Unlock()
-
-	logger.Log.Info().
-		Int("count", len(m.clients)).
-		Msg("Shutting down all sessions")
-
-	// Desconectar todos os clientes
-	for sessionID, client := range m.clients {
-		client.Disconnect()
-
-		// Atualizar status no banco
-		if err := m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false); err != nil {
-			logger.Log.Warn().
-				Err(err).
-				Str("session_id", sessionID).
-				Msg("Failed to update session status on shutdown")
-		}
-
-		logger.Log.Info().
-			Str("session_id", sessionID).
-			Msg("Session disconnected on shutdown")
-	}
-
-	// Limpar map
-	m.clients = make(map[string]*whatsmeow.Client)
-
-	return nil
-}
-
-func (m *SessionManager) GetActiveSessionsCount() int {
-	m.clientsMux.RLock()
-	defer m.clientsMux.RUnlock()
-	return len(m.clients)
-}

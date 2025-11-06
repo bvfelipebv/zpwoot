@@ -7,17 +7,23 @@ import (
 
 	_ "github.com/lib/pq"
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/proto/waCompanionReg"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
 	waLog "go.mau.fi/whatsmeow/util/log"
+	"google.golang.org/protobuf/proto"
 
 	"zpwoot/pkg/logger"
 )
 
-type WhatsAppService struct {
+var (
+	// Container global do whatsmeow (similar ao wuzapi)
 	container *sqlstore.Container
-	db        *sql.DB
+)
+
+type WhatsAppService struct {
+	db *sql.DB
 }
 
 func NewWhatsAppService(db *sql.DB) (*WhatsAppService, error) {
@@ -28,127 +34,71 @@ func NewWhatsAppService(db *sql.DB) (*WhatsAppService, error) {
 	// Criar logger para whatsmeow
 	waLogger := waLog.Stdout("WhatsApp", "INFO", true)
 
-	// Criar container do whatsmeow usando a mesma conexão SQL
-	container := sqlstore.NewWithDB(db, "postgres", waLogger)
+	// Criar container global do whatsmeow usando a mesma conexão SQL
+	container = sqlstore.NewWithDB(db, "postgres", waLogger)
 
 	// Executar upgrade das tabelas do whatsmeow
 	if err := container.Upgrade(context.Background()); err != nil {
 		return nil, fmt.Errorf("failed to upgrade whatsmeow database: %w", err)
 	}
 
+	// Configurar propriedades do device (IMPORTANTE para WhatsApp aceitar)
+	store.DeviceProps.PlatformType = waCompanionReg.DeviceProps_UNKNOWN.Enum()
+	store.DeviceProps.Os = proto.String("zpwoot")
+
 	logger.Log.Info().Msg("WhatsApp service initialized successfully")
 
 	return &WhatsAppService{
-		container: container,
-		db:        db,
+		db: db,
 	}, nil
 }
 
-func (s *WhatsAppService) GetOrCreateDevice(ctx context.Context, sessionID string, jid string) (*store.Device, error) {
+func (s *WhatsAppService) GetOrCreateDevice(ctx context.Context, jid string) (*store.Device, error) {
+	var deviceStore *store.Device
+	var err error
+
 	// Se temos um JID, tentar obter device existente
 	if jid != "" {
-		parsedJID, err := types.ParseJID(jid)
-		if err != nil {
+		parsedJID, parseErr := types.ParseJID(jid)
+		if parseErr != nil {
 			logger.Log.Warn().
-				Err(err).
-				Str("session_id", sessionID).
+				Err(parseErr).
 				Str("jid", jid).
 				Msg("Failed to parse JID, creating new device")
-			return s.container.NewDevice(), nil
-		}
-
-		device, err := s.container.GetDevice(ctx, parsedJID)
-		if err != nil {
-			logger.Log.Warn().
-				Err(err).
-				Str("session_id", sessionID).
-				Str("jid", jid).
-				Msg("Failed to get device, creating new one")
-			return s.container.NewDevice(), nil
-		}
-
-		if device != nil {
-			logger.Log.Info().
-				Str("session_id", sessionID).
-				Str("jid", jid).
-				Msg("Retrieved existing WhatsApp device")
-			return device, nil
+			deviceStore = container.NewDevice()
+		} else {
+			deviceStore, err = container.GetDevice(ctx, parsedJID)
+			if err != nil {
+				logger.Log.Warn().
+					Err(err).
+					Str("jid", jid).
+					Msg("Failed to get device, creating new one")
+				deviceStore = container.NewDevice()
+			}
 		}
 	}
 
-	// Se não tem JID ou não encontrou device, criar novo
-	device := s.container.NewDevice()
+	// Se não encontrou device ou não tinha JID, criar novo
+	if deviceStore == nil {
+		logger.Log.Warn().Msg("No store found. Creating new one")
+		deviceStore = container.NewDevice()
+	}
 
-	logger.Log.Info().
-		Str("session_id", sessionID).
-		Msg("Created new WhatsApp device")
-
-	return device, nil
+	return deviceStore, nil
 }
 
-func (s *WhatsAppService) GetDeviceByJID(ctx context.Context, jid types.JID) (*store.Device, error) {
-	device, err := s.container.GetDevice(ctx, jid)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get device by JID: %w", err)
+func (s *WhatsAppService) NewClient(device *store.Device, debug bool) *whatsmeow.Client {
+	if debug {
+		clientLog := waLog.Stdout("Client", "DEBUG", true)
+		return whatsmeow.NewClient(device, clientLog)
 	}
-	return device, nil
-}
-
-func (s *WhatsAppService) GetFirstDevice(ctx context.Context) (*store.Device, error) {
-	device, err := s.container.GetFirstDevice(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get first device: %w", err)
-	}
-	return device, nil
-}
-
-func (s *WhatsAppService) SaveDevice(ctx context.Context, device *store.Device) error {
-	if device == nil {
-		return fmt.Errorf("device is nil")
-	}
-
-	if err := s.container.PutDevice(ctx, device); err != nil {
-		return fmt.Errorf("failed to save device: %w", err)
-	}
-
-	logger.Log.Info().
-		Str("jid", device.ID.String()).
-		Msg("Device saved successfully")
-
-	return nil
-}
-
-func (s *WhatsAppService) DeleteDevice(ctx context.Context, device *store.Device) error {
-	if device == nil {
-		return fmt.Errorf("device is nil")
-	}
-
-	if err := s.container.DeleteDevice(ctx, device); err != nil {
-		return fmt.Errorf("failed to delete device: %w", err)
-	}
-
-	logger.Log.Info().
-		Str("jid", device.ID.String()).
-		Msg("Device deleted successfully")
-
-	return nil
-}
-
-func (s *WhatsAppService) GetAllDevices(ctx context.Context) ([]*store.Device, error) {
-	devices, err := s.container.GetAllDevices(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get all devices: %w", err)
-	}
-	return devices, nil
-}
-
-func (s *WhatsAppService) NewClient(device *store.Device) *whatsmeow.Client {
 	return whatsmeow.NewClient(device, nil)
 }
 
 func (s *WhatsAppService) Close() error {
-	if s.container != nil {
-		return s.container.Close()
+	if container != nil {
+		return container.Close()
 	}
 	return nil
 }
+

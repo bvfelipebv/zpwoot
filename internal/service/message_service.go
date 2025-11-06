@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"go.mau.fi/whatsmeow"
@@ -12,6 +13,96 @@ import (
 
 	"zpwoot/pkg/logger"
 )
+
+// cleanPhone remove caracteres não numéricos do telefone
+func cleanPhone(phone string) string {
+	var cleaned strings.Builder
+	for _, c := range phone {
+		if c >= '0' && c <= '9' {
+			cleaned.WriteRune(c)
+		}
+	}
+	return cleaned.String()
+}
+
+// parseJID converte um número de telefone em JID do WhatsApp
+func parseJID(phone string) (types.JID, error) {
+	cleaned := cleanPhone(phone)
+	if cleaned == "" {
+		return types.JID{}, fmt.Errorf("invalid phone number")
+	}
+	return types.NewJID(cleaned, types.DefaultUserServer), nil
+}
+
+// buildImageMessage cria uma mensagem de imagem
+func buildImageMessage(uploaded whatsmeow.UploadResponse, imageData []byte, caption, mimeType string) *waProto.Message {
+	return &waProto.Message{
+		ImageMessage: &waProto.ImageMessage{
+			Caption:       proto.String(caption),
+			URL:           proto.String(uploaded.URL),
+			DirectPath:    proto.String(uploaded.DirectPath),
+			MediaKey:      uploaded.MediaKey,
+			Mimetype:      proto.String(mimeType),
+			FileEncSHA256: uploaded.FileEncSHA256,
+			FileSHA256:    uploaded.FileSHA256,
+			FileLength:    proto.Uint64(uint64(len(imageData))),
+		},
+	}
+}
+
+// buildAudioMessage cria uma mensagem de áudio
+func buildAudioMessage(uploaded whatsmeow.UploadResponse, audioData []byte, mimeType string, isPTT bool) *waProto.Message {
+	audioMsg := &waProto.AudioMessage{
+		URL:           proto.String(uploaded.URL),
+		DirectPath:    proto.String(uploaded.DirectPath),
+		MediaKey:      uploaded.MediaKey,
+		Mimetype:      proto.String(mimeType),
+		FileEncSHA256: uploaded.FileEncSHA256,
+		FileSHA256:    uploaded.FileSHA256,
+		FileLength:    proto.Uint64(uint64(len(audioData))),
+	}
+
+	if isPTT {
+		audioMsg.PTT = proto.Bool(true)
+		audioMsg.Seconds = proto.Uint32(0)
+	}
+
+	return &waProto.Message{AudioMessage: audioMsg}
+}
+
+// buildVideoMessage cria uma mensagem de vídeo
+func buildVideoMessage(uploaded whatsmeow.UploadResponse, videoData []byte, caption, mimeType string) *waProto.Message {
+	return &waProto.Message{
+		VideoMessage: &waProto.VideoMessage{
+			Caption:       proto.String(caption),
+			URL:           proto.String(uploaded.URL),
+			DirectPath:    proto.String(uploaded.DirectPath),
+			MediaKey:      uploaded.MediaKey,
+			Mimetype:      proto.String(mimeType),
+			FileEncSHA256: uploaded.FileEncSHA256,
+			FileSHA256:    uploaded.FileSHA256,
+			FileLength:    proto.Uint64(uint64(len(videoData))),
+			Seconds:       proto.Uint32(0),
+		},
+	}
+}
+
+// buildDocumentMessage cria uma mensagem de documento
+func buildDocumentMessage(uploaded whatsmeow.UploadResponse, docData []byte, fileName, caption, mimeType string) *waProto.Message {
+	return &waProto.Message{
+		DocumentMessage: &waProto.DocumentMessage{
+			Caption:       proto.String(caption),
+			FileName:      proto.String(fileName),
+			URL:           proto.String(uploaded.URL),
+			DirectPath:    proto.String(uploaded.DirectPath),
+			MediaKey:      uploaded.MediaKey,
+			Mimetype:      proto.String(mimeType),
+			FileEncSHA256: uploaded.FileEncSHA256,
+			FileSHA256:    uploaded.FileSHA256,
+			FileLength:    proto.Uint64(uint64(len(docData))),
+		},
+	}
+}
 
 func (m *SessionManager) SendTextMessage(ctx context.Context, client *whatsmeow.Client, phone string, message string) (string, time.Time, error) {
 	// Parsear JID do destinatário
@@ -40,33 +131,18 @@ func (m *SessionManager) SendTextMessage(ctx context.Context, client *whatsmeow.
 }
 
 func (m *SessionManager) SendImageMessage(ctx context.Context, client *whatsmeow.Client, phone string, imageData []byte, caption string, mimeType string) (string, time.Time, error) {
-	// Parsear JID do destinatário
 	recipient, err := parseJID(phone)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
 	}
 
-	// Upload da imagem
 	uploaded, err := client.Upload(ctx, imageData, whatsmeow.MediaImage)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to upload image: %w", err)
 	}
 
-	// Criar mensagem de imagem
-	msg := &waProto.Message{
-		ImageMessage: &waProto.ImageMessage{
-			Caption:       proto.String(caption),
-			URL:           proto.String(uploaded.URL),
-			DirectPath:    proto.String(uploaded.DirectPath),
-			MediaKey:      uploaded.MediaKey,
-			Mimetype:      proto.String(mimeType),
-			FileEncSHA256: uploaded.FileEncSHA256,
-			FileSHA256:    uploaded.FileSHA256,
-			FileLength:    proto.Uint64(uint64(len(imageData))),
-		},
-	}
+	msg := buildImageMessage(uploaded, imageData, caption, mimeType)
 
-	// Enviar mensagem
 	resp, err := client.SendMessage(ctx, recipient, msg)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to send image: %w", err)
@@ -91,17 +167,7 @@ func (m *SessionManager) SendAudioMessage(ctx context.Context, client *whatsmeow
 		return "", time.Time{}, fmt.Errorf("failed to upload audio: %w", err)
 	}
 
-	msg := &waProto.Message{
-		AudioMessage: &waProto.AudioMessage{
-			URL:           proto.String(uploaded.URL),
-			DirectPath:    proto.String(uploaded.DirectPath),
-			MediaKey:      uploaded.MediaKey,
-			Mimetype:      proto.String(mimeType),
-			FileEncSHA256: uploaded.FileEncSHA256,
-			FileSHA256:    uploaded.FileSHA256,
-			FileLength:    proto.Uint64(uint64(len(audioData))),
-		},
-	}
+	msg := buildAudioMessage(uploaded, audioData, mimeType, false)
 
 	resp, err := client.SendMessage(ctx, recipient, msg)
 	if err != nil {
@@ -117,44 +183,27 @@ func (m *SessionManager) SendAudioMessage(ctx context.Context, client *whatsmeow
 }
 
 func (m *SessionManager) SendImageFromURL(ctx context.Context, client *whatsmeow.Client, phone string, imageURL string, caption string) (string, time.Time, error) {
-	// Download ou decode da imagem
 	imageData, mimeType, err := downloadOrDecodeMedia(imageURL)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to get image: %w", err)
 	}
 
-	// Se não detectou mime type, usar padrão
 	if mimeType == "" {
 		mimeType = "image/jpeg"
 	}
 
-	// Parsear JID do destinatário
 	recipient, err := parseJID(phone)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
 	}
 
-	// Upload da imagem para WhatsApp
 	uploaded, err := client.Upload(ctx, imageData, whatsmeow.MediaImage)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to upload image: %w", err)
 	}
 
-	// Criar mensagem de imagem com todos os campos necessários
-	msg := &waProto.Message{
-		ImageMessage: &waProto.ImageMessage{
-			Caption:       proto.String(caption),
-			URL:           proto.String(uploaded.URL),
-			DirectPath:    proto.String(uploaded.DirectPath),
-			MediaKey:      uploaded.MediaKey,
-			Mimetype:      proto.String(mimeType),
-			FileEncSHA256: uploaded.FileEncSHA256,
-			FileSHA256:    uploaded.FileSHA256,
-			FileLength:    proto.Uint64(uint64(len(imageData))),
-		},
-	}
+	msg := buildImageMessage(uploaded, imageData, caption, mimeType)
 
-	// Enviar mensagem
 	resp, err := client.SendMessage(ctx, recipient, msg)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to send image: %w", err)
@@ -171,45 +220,27 @@ func (m *SessionManager) SendImageFromURL(ctx context.Context, client *whatsmeow
 }
 
 func (m *SessionManager) SendAudioFromURL(ctx context.Context, client *whatsmeow.Client, phone string, audioURL string) (string, time.Time, error) {
-	// Download ou decode do áudio
 	audioData, mimeType, err := downloadOrDecodeMedia(audioURL)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to get audio: %w", err)
 	}
 
-	// Se não detectou mime type, usar padrão para PTT
 	if mimeType == "" {
 		mimeType = "audio/ogg; codecs=opus"
 	}
 
-	// Parsear JID do destinatário
 	recipient, err := parseJID(phone)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
 	}
 
-	// Upload do áudio para WhatsApp
 	uploaded, err := client.Upload(ctx, audioData, whatsmeow.MediaAudio)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to upload audio: %w", err)
 	}
 
-	// Criar mensagem de áudio com todos os campos necessários
-	msg := &waProto.Message{
-		AudioMessage: &waProto.AudioMessage{
-			URL:           proto.String(uploaded.URL),
-			DirectPath:    proto.String(uploaded.DirectPath),
-			MediaKey:      uploaded.MediaKey,
-			Mimetype:      proto.String(mimeType),
-			FileEncSHA256: uploaded.FileEncSHA256,
-			FileSHA256:    uploaded.FileSHA256,
-			FileLength:    proto.Uint64(uint64(len(audioData))),
-			PTT:           proto.Bool(true), // Push-to-talk (áudio de voz)
-			Seconds:       proto.Uint32(0),  // Duração em segundos (0 = desconhecido)
-		},
-	}
+	msg := buildAudioMessage(uploaded, audioData, mimeType, true)
 
-	// Enviar mensagem
 	resp, err := client.SendMessage(ctx, recipient, msg)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to send audio: %w", err)
@@ -226,45 +257,27 @@ func (m *SessionManager) SendAudioFromURL(ctx context.Context, client *whatsmeow
 }
 
 func (m *SessionManager) SendVideoFromURL(ctx context.Context, client *whatsmeow.Client, phone string, videoURL string, caption string) (string, time.Time, error) {
-	// Download ou decode do vídeo
 	videoData, mimeType, err := downloadOrDecodeMedia(videoURL)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to get video: %w", err)
 	}
 
-	// Se não detectou mime type, usar padrão
 	if mimeType == "" {
 		mimeType = "video/mp4"
 	}
 
-	// Parsear JID do destinatário
 	recipient, err := parseJID(phone)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("invalid phone number: %w", err)
 	}
 
-	// Upload do vídeo para WhatsApp
 	uploaded, err := client.Upload(ctx, videoData, whatsmeow.MediaVideo)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to upload video: %w", err)
 	}
 
-	// Criar mensagem de vídeo com todos os campos necessários
-	msg := &waProto.Message{
-		VideoMessage: &waProto.VideoMessage{
-			Caption:       proto.String(caption),
-			URL:           proto.String(uploaded.URL),
-			DirectPath:    proto.String(uploaded.DirectPath),
-			MediaKey:      uploaded.MediaKey,
-			Mimetype:      proto.String(mimeType),
-			FileEncSHA256: uploaded.FileEncSHA256,
-			FileSHA256:    uploaded.FileSHA256,
-			FileLength:    proto.Uint64(uint64(len(videoData))),
-			Seconds:       proto.Uint32(0), // Duração em segundos (0 = desconhecido)
-		},
-	}
+	msg := buildVideoMessage(uploaded, videoData, caption, mimeType)
 
-	// Enviar mensagem
 	resp, err := client.SendMessage(ctx, recipient, msg)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to send video: %w", err)
@@ -304,19 +317,7 @@ func (m *SessionManager) SendDocumentFromURL(ctx context.Context, client *whatsm
 		return "", time.Time{}, fmt.Errorf("failed to upload document: %w", err)
 	}
 
-	msg := &waProto.Message{
-		DocumentMessage: &waProto.DocumentMessage{
-			Caption:       proto.String(caption),
-			FileName:      proto.String(fileName),
-			URL:           proto.String(uploaded.URL),
-			DirectPath:    proto.String(uploaded.DirectPath),
-			MediaKey:      uploaded.MediaKey,
-			Mimetype:      proto.String(mimeType),
-			FileEncSHA256: uploaded.FileEncSHA256,
-			FileSHA256:    uploaded.FileSHA256,
-			FileLength:    proto.Uint64(uint64(len(docData))),
-		},
-	}
+	msg := buildDocumentMessage(uploaded, docData, fileName, caption, mimeType)
 
 	resp, err := client.SendMessage(ctx, recipient, msg)
 	if err != nil {
@@ -461,50 +462,36 @@ func (m *SessionManager) SendContactsList(ctx context.Context, client *whatsmeow
 	return resp.ID, resp.Timestamp, nil
 }
 
-func generateVcard(contactName string, contactPhone string, customVcard string) string {
-	// Se vCard customizado foi fornecido, usar ele
-	if customVcard != "" {
-		return customVcard
-	}
-
-	// Gerar vCard automaticamente com formato correto para WhatsApp
-	// Remover caracteres não numéricos do telefone
-	cleanPhone := ""
-	for _, c := range contactPhone {
-		if c >= '0' && c <= '9' {
-			cleanPhone += string(c)
-		}
-	}
-
-	// Formatar telefone para exibição (exemplo: +55 99 98176-9536)
-	formattedPhone := formatPhoneForDisplay(cleanPhone)
-
-	// Criar vCard com waid (WhatsApp ID) - essencial para mostrar botões
-	return fmt.Sprintf(`BEGIN:VCARD
-VERSION:3.0
-FN:%s
-TEL;type=CELL;type=VOICE;waid=%s:%s
-END:VCARD`, contactName, cleanPhone, formattedPhone)
-}
-
 func formatPhoneForDisplay(phone string) string {
-	// Se for número brasileiro (55)
 	if len(phone) >= 12 && phone[:2] == "55" {
-		// Formato: +55 99 98176-9536
 		ddd := phone[2:4]
-		if len(phone) == 13 { // Celular com 9 dígitos
+		if len(phone) == 13 {
 			return fmt.Sprintf("+55 %s %s-%s", ddd, phone[4:9], phone[9:13])
-		} else if len(phone) == 12 { // Fixo com 8 dígitos
+		} else if len(phone) == 12 {
 			return fmt.Sprintf("+55 %s %s-%s", ddd, phone[4:8], phone[8:12])
 		}
 	}
 
-	// Formato genérico
 	if len(phone) > 0 {
 		return "+" + phone
 	}
 
 	return phone
+}
+
+func generateVcard(contactName string, contactPhone string, customVcard string) string {
+	if customVcard != "" {
+		return customVcard
+	}
+
+	cleaned := cleanPhone(contactPhone)
+	formatted := formatPhoneForDisplay(cleaned)
+
+	return fmt.Sprintf(`BEGIN:VCARD
+VERSION:3.0
+FN:%s
+TEL;type=CELL;type=VOICE;waid=%s:%s
+END:VCARD`, contactName, cleaned, formatted)
 }
 
 func (m *SessionManager) SendSticker(ctx context.Context, client *whatsmeow.Client, phone string, stickerURL string, stickerBase64 string) (string, time.Time, error) {
@@ -702,26 +689,4 @@ func (m *SessionManager) EditMessage(ctx context.Context, client *whatsmeow.Clie
 
 	logger.Log.Info().Str("message_id", messageID).Str("phone", phone).Msg("Message edited")
 	return resp.ID, resp.Timestamp, nil
-}
-
-func parseJID(phone string) (types.JID, error) {
-	// Remover caracteres não numéricos
-	cleanPhone := ""
-	for _, c := range phone {
-		if c >= '0' && c <= '9' {
-			cleanPhone += string(c)
-		}
-	}
-
-	if cleanPhone == "" {
-		return types.JID{}, fmt.Errorf("invalid phone number")
-	}
-
-	// Se não contém @, adicionar @s.whatsapp.net
-	if len(cleanPhone) > 0 {
-		return types.NewJID(cleanPhone, types.DefaultUserServer), nil
-	}
-
-	// Se já contém @, parsear diretamente
-	return types.ParseJID(phone)
 }

@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/skip2/go-qrcode"
 
 	"zpwoot/internal/api/dto"
 	"zpwoot/internal/constants"
@@ -623,11 +625,11 @@ func toSessionResponse(session *model.Session) dto.SessionResponse {
 }
 
 // @Summary Obter QR Code
-// @Description Retorna o QR Code atual da sessão (em memória)
+// @Description Retorna o QR Code atual da sessão (em memória) com imagem base64 decodificada
 // @Tags Sessions
 // @Produce json
 // @Param id path string true "Session ID"
-// @Success 200 {object} map[string]string
+// @Success 200 {object} map[string]interface{}
 // @Failure 404 {object} dto.ErrorResponse
 // @Security ApiKeyAuth
 // @Router /sessions/{id}/qr [get]
@@ -644,9 +646,24 @@ func (h *SessionHandler) GetQRCode(c *gin.Context) {
 		return
 	}
 
+	// Gerar imagem PNG do QR code usando go-qrcode
+	qrImage, err := qrcode.Encode(qrCode, qrcode.Medium, 512)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to generate QR code image")
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "qr_generation_failed",
+			Message: "Failed to generate QR code image",
+		})
+		return
+	}
+
+	// Converter para base64
+	qrBase64 := base64.StdEncoding.EncodeToString(qrImage)
+
 	c.JSON(http.StatusOK, gin.H{
 		"session_id": sessionID,
 		"qr_code":    qrCode,
+		"qrbase64":   qrBase64,
 		"message":    "Scan this QR code with WhatsApp",
 	})
 }
