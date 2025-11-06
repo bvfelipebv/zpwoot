@@ -32,7 +32,12 @@ type SessionManager struct {
 	eventHandler *EventHandler
 }
 
-func NewSessionManager(whatsappSvc *WhatsAppService, sessionRepo *repository.SessionRepository) *SessionManager {
+func NewSessionManager(
+	whatsappSvc *WhatsAppService,
+	sessionRepo *repository.SessionRepository,
+	webhookProcessor *WebhookProcessor,
+	webhookFormatter *WebhookFormatter,
+) *SessionManager {
 	manager := &SessionManager{
 		whatsappSvc: whatsappSvc,
 		sessionRepo: sessionRepo,
@@ -40,8 +45,8 @@ func NewSessionManager(whatsappSvc *WhatsAppService, sessionRepo *repository.Ses
 		qrCodes:     make(map[string]string),
 	}
 
-	// Criar event handler
-	manager.eventHandler = NewEventHandler(manager, sessionRepo)
+	// Criar event handler com webhook support
+	manager.eventHandler = NewEventHandler(manager, sessionRepo, webhookProcessor, webhookFormatter)
 
 	return manager
 }

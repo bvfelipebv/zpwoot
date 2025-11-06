@@ -6,19 +6,29 @@ import (
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types/events"
 
+	"zpwoot/internal/constants"
 	"zpwoot/internal/repository"
 	"zpwoot/pkg/logger"
 )
 
 type EventHandler struct {
-	manager     *SessionManager
-	sessionRepo *repository.SessionRepository
+	manager          *SessionManager
+	sessionRepo      *repository.SessionRepository
+	webhookProcessor *WebhookProcessor
+	webhookFormatter *WebhookFormatter
 }
 
-func NewEventHandler(manager *SessionManager, sessionRepo *repository.SessionRepository) *EventHandler {
+func NewEventHandler(
+	manager *SessionManager,
+	sessionRepo *repository.SessionRepository,
+	webhookProcessor *WebhookProcessor,
+	webhookFormatter *WebhookFormatter,
+) *EventHandler {
 	return &EventHandler{
-		manager:     manager,
-		sessionRepo: sessionRepo,
+		manager:          manager,
+		sessionRepo:      sessionRepo,
+		webhookProcessor: webhookProcessor,
+		webhookFormatter: webhookFormatter,
 	}
 }
 
@@ -49,7 +59,7 @@ func (h *EventHandler) handleEvent(sessionID string, evt interface{}) {
 	}
 }
 
-func (h *EventHandler) handleConnected(sessionID string, _ *events.Connected) {
+func (h *EventHandler) handleConnected(sessionID string, evt *events.Connected) {
 	logger.Log.Info().
 		Str("session_id", sessionID).
 		Msg("WhatsApp connected")
@@ -64,10 +74,17 @@ func (h *EventHandler) handleConnected(sessionID string, _ *events.Connected) {
 			Msg("Failed to update session status to connected")
 	}
 
-	// TODO: Enviar webhook de conexão
+	// Enviar webhook de conexão
+	payload := h.webhookFormatter.FormatConnected(sessionID, evt)
+	if err := h.webhookProcessor.ProcessEvent(sessionID, constants.EventConnected, payload); err != nil {
+		logger.Log.Error().
+			Err(err).
+			Str("session_id", sessionID).
+			Msg("Failed to process connected webhook")
+	}
 }
 
-func (h *EventHandler) handleDisconnected(sessionID string, _ *events.Disconnected) {
+func (h *EventHandler) handleDisconnected(sessionID string, evt *events.Disconnected) {
 	logger.Log.Warn().
 		Str("session_id", sessionID).
 		Msg("WhatsApp disconnected")
@@ -82,7 +99,14 @@ func (h *EventHandler) handleDisconnected(sessionID string, _ *events.Disconnect
 			Msg("Failed to update session status to disconnected")
 	}
 
-	// TODO: Enviar webhook de desconexão
+	// Enviar webhook de desconexão
+	payload := h.webhookFormatter.FormatDisconnected(sessionID, evt)
+	if err := h.webhookProcessor.ProcessEvent(sessionID, constants.EventDisconnected, payload); err != nil {
+		logger.Log.Error().
+			Err(err).
+			Str("session_id", sessionID).
+			Msg("Failed to process disconnected webhook")
+	}
 }
 
 func (h *EventHandler) handleLoggedOut(sessionID string, evt *events.LoggedOut) {
@@ -119,7 +143,14 @@ func (h *EventHandler) handleMessage(sessionID string, evt *events.Message) {
 		Str("message_id", evt.Info.ID).
 		Msg("Message received")
 
-	// TODO: Processar mensagem e enviar webhook
+	// Enviar webhook de mensagem
+	payload := h.webhookFormatter.FormatMessage(sessionID, evt)
+	if err := h.webhookProcessor.ProcessEvent(sessionID, constants.EventMessage, payload); err != nil {
+		logger.Log.Error().
+			Err(err).
+			Str("session_id", sessionID).
+			Msg("Failed to process message webhook")
+	}
 }
 
 func (h *EventHandler) handleReceipt(sessionID string, evt *events.Receipt) {
@@ -128,7 +159,14 @@ func (h *EventHandler) handleReceipt(sessionID string, evt *events.Receipt) {
 		Str("type", string(evt.Type)).
 		Msg("Receipt received")
 
-	// TODO: Processar recibo e enviar webhook
+	// Enviar webhook de recibo
+	payload := h.webhookFormatter.FormatReceipt(sessionID, evt)
+	if err := h.webhookProcessor.ProcessEvent(sessionID, constants.EventReceipt, payload); err != nil {
+		logger.Log.Error().
+			Err(err).
+			Str("session_id", sessionID).
+			Msg("Failed to process receipt webhook")
+	}
 }
 
 func (h *EventHandler) handlePresence(sessionID string, evt *events.Presence) {

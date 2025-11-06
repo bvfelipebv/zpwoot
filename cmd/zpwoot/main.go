@@ -14,6 +14,7 @@ import (
 	"zpwoot/internal/api/handlers"
 	"zpwoot/internal/config"
 	"zpwoot/internal/db"
+	natsclient "zpwoot/internal/nats"
 	"zpwoot/internal/repository"
 	"zpwoot/internal/service"
 	"zpwoot/pkg/logger"
@@ -75,12 +76,56 @@ func main() {
 	defer whatsappSvc.Close()
 	logger.Log.Info().Msg("✅ WhatsApp service initialized")
 
+	// Initialize NATS
+	logger.Log.Info().Msg("Connecting to NATS...")
+	natsClient := natsclient.NewClient(natsclient.Config{
+		URL:           config.AppConfig.NATSURL,
+		MaxReconnect:  config.AppConfig.NATSMaxReconnect,
+		ReconnectWait: config.AppConfig.NATSReconnectWait,
+	})
+	if err := natsClient.Connect(); err != nil {
+		logger.Log.Fatal().Err(err).Msg("Failed to connect to NATS")
+	}
+	defer natsClient.Close()
+	logger.Log.Info().Msg("✅ NATS connected")
+
 	// Initialize repositories
 	sessionRepo := repository.NewSessionRepository(db.DB)
 
+	// Initialize webhook services
+	webhookFormatter := service.NewWebhookFormatter()
+	webhookProcessor := service.NewWebhookProcessor(natsClient, webhookFormatter, sessionRepo)
+	webhookDelivery := service.NewWebhookDelivery(config.AppConfig.WebhookTimeout)
+
 	// Initialize services
-	sessionManager := service.NewSessionManager(whatsappSvc, sessionRepo)
+	sessionManager := service.NewSessionManager(whatsappSvc, sessionRepo, webhookProcessor, webhookFormatter)
 	pairingService := service.NewPairingService(whatsappSvc, sessionRepo, sessionManager)
+
+	// Start webhook workers
+	logger.Log.Info().
+		Int("workers", config.AppConfig.WebhookWorkers).
+		Msg("Starting webhook workers...")
+
+	webhookWorkers := make([]*service.WebhookWorker, config.AppConfig.WebhookWorkers)
+	for i := 0; i < config.AppConfig.WebhookWorkers; i++ {
+		worker := service.NewWebhookWorker(
+			i+1,
+			natsClient,
+			webhookDelivery,
+			config.AppConfig.WebhookMaxRetries,
+			config.AppConfig.WebhookRetryBaseDelay,
+		)
+		if err := worker.Start(); err != nil {
+			logger.Log.Fatal().
+				Err(err).
+				Int("worker_id", i+1).
+				Msg("Failed to start webhook worker")
+		}
+		webhookWorkers[i] = worker
+	}
+	logger.Log.Info().
+		Int("workers", config.AppConfig.WebhookWorkers).
+		Msg("✅ Webhook workers started")
 
 	// Restore sessions if configured
 	if config.AppConfig.AutoRestoreSessions {

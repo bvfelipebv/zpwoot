@@ -52,6 +52,40 @@ services:
   #   networks:
   #     - zpwoot-network
 
+  # NATS Message Broker (para webhooks)
+  nats:
+    image: nats:latest
+    container_name: zpwoot-nats
+    restart: unless-stopped
+    ports:
+      - "4222:4222"   # Client connections
+      - "8222:8222"   # HTTP monitoring
+      - "6222:6222"   # Cluster routing
+    command:
+      - "--http_port=8222"
+      - "--js"        # Enable JetStream
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zpwoot-network
+
+  # Webhook Tester (para testar webhooks)
+  webhook-tester:
+    image: ghcr.io/tarampampam/webhook-tester:2
+    container_name: zpwoot-webhook-tester
+    restart: unless-stopped
+    ports:
+      - "8090:8080"   # UI e endpoint de webhooks
+    environment:
+      - LOG_LEVEL=info
+      - AUTO_CREATE_SESSIONS=true
+      - MAX_REQUESTS=256
+    networks:
+      - zpwoot-network
+
   # DBGate (interface moderna para gerenciar PostgreSQL)
   dbgate:
     image: dbgate/dbgate:latest
