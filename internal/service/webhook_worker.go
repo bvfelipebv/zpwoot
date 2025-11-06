@@ -43,11 +43,6 @@ func NewWebhookWorker(
 }
 
 func (w *WebhookWorker) Start() error {
-	w.log.Info().
-		Str(logger.FieldSubject, "webhooks.*").
-		Str(logger.FieldQueue, "webhook-workers").
-		Msg("Starting webhook worker")
-
 	// Subscribe to webhooks.* with queue group for load balancing
 	sub, err := w.natsClient.QueueSubscribe("webhooks.*", "webhook-workers", w.handleMessage)
 	if err != nil {
@@ -55,9 +50,6 @@ func (w *WebhookWorker) Start() error {
 	}
 
 	w.subscription = sub
-
-	w.log.Info().Msg("✅ Webhook worker started and listening")
-
 	return nil
 }
 

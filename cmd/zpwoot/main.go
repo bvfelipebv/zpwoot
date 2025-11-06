@@ -54,30 +54,21 @@ func main() {
 
 	// Reconfigure logger with config level
 	logger.Init(config.AppConfig.LogLevel)
-	logger.Log.Info().
-		Str("environment", config.AppConfig.Environment).
-		Str("log_level", config.AppConfig.LogLevel).
-		Msg("Configuration loaded")
 
 	// Initialize database
-	logger.Log.Info().Msg("Initializing database connection...")
 	if err := db.InitDB(); err != nil {
 		logger.Log.Fatal().Err(err).Msg("Failed to initialize database")
 	}
 	defer db.Close()
-	logger.Log.Info().Msg("✅ Database initialized successfully")
 
 	// Initialize WhatsApp service
-	logger.Log.Info().Msg("Initializing WhatsApp service...")
 	whatsappSvc, err := service.NewWhatsAppService(db.DB)
 	if err != nil {
 		logger.Log.Fatal().Err(err).Msg("Failed to initialize WhatsApp service")
 	}
 	defer whatsappSvc.Close()
-	logger.Log.Info().Msg("✅ WhatsApp service initialized")
 
 	// Initialize NATS
-	logger.Log.Info().Msg("Connecting to NATS...")
 	natsClient := natsclient.NewClient(natsclient.Config{
 		URL:           config.AppConfig.NATSURL,
 		MaxReconnect:  config.AppConfig.NATSMaxReconnect,
@@ -87,7 +78,6 @@ func main() {
 		logger.Log.Fatal().Err(err).Msg("Failed to connect to NATS")
 	}
 	defer natsClient.Close()
-	logger.Log.Info().Msg("✅ NATS connected")
 
 	// Initialize repositories
 	sessionRepo := repository.NewSessionRepository(db.DB)
@@ -102,10 +92,6 @@ func main() {
 	pairingService := service.NewPairingService(whatsappSvc, sessionRepo, sessionManager)
 
 	// Start webhook workers
-	logger.Log.Info().
-		Int("workers", config.AppConfig.WebhookWorkers).
-		Msg("Starting webhook workers...")
-
 	webhookWorkers := make([]*service.WebhookWorker, config.AppConfig.WebhookWorkers)
 	for i := 0; i < config.AppConfig.WebhookWorkers; i++ {
 		worker := service.NewWebhookWorker(
@@ -129,14 +115,15 @@ func main() {
 
 	// Restore sessions if configured
 	if config.AppConfig.AutoRestoreSessions {
-		logger.Log.Info().Msg("Restoring connected sessions...")
 		if err := sessionManager.RestoreAllSessions(context.Background()); err != nil {
 			logger.Log.Error().Err(err).Msg("Failed to restore sessions")
 		} else {
 			activeCount := sessionManager.GetActiveSessionsCount()
-			logger.Log.Info().
-				Int("active_sessions", activeCount).
-				Msg("✅ Sessions restored")
+			if activeCount > 0 {
+				logger.Log.Info().
+					Int("active_sessions", activeCount).
+					Msg("✅ Sessions restored")
+			}
 		}
 	}
 
@@ -159,11 +146,6 @@ func main() {
 	port := config.AppConfig.Port
 	addr := fmt.Sprintf(":%s", port)
 
-	logger.Log.Info().
-		Str("port", port).
-		Str("address", addr).
-		Msg("🌐 Starting HTTP server")
-
 	// Start server in goroutine
 	go func() {
 		if err := r.Run(addr); err != nil {
@@ -171,9 +153,7 @@ func main() {
 		}
 	}()
 
-	logger.Log.Info().Msg("✅ Server started successfully")
-	logger.Log.Info().Msgf("📡 API available at http://localhost:%s", port)
-	logger.Log.Info().Msgf("🏥 Health check: http://localhost:%s/health", port)
+	logger.Log.Info().Msgf("✅ Server started at http://localhost:%s", port)
 	logger.Log.Info().Msg("Press Ctrl+C to shutdown")
 
 	// Wait for interrupt signal
