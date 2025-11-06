@@ -1,0 +1,40 @@
+version: '3.8'
+
+networks:
+  infraNet:
+    external: true
+
+services:
+  zpwoot:
+    image: zpwoot:latest
+    networks:
+      - infraNet
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.zpwoot.rule=Host(`zpwoot.local`)"
+        - "traefik.http.routers.zpwoot.entrypoints=web"
+        - "traefik.http.services.zpwoot.loadbalancer.server.port=8080"
+        - "traefik.docker.network=infraNet"
+        # HTTPS configuration (optional)
+        - "traefik.http.routers.zpwoot-secure.rule=Host(`zpwoot.local`)"
+        - "traefik.http.routers.zpwoot-secure.entrypoints=websecure"
+        - "traefik.http.routers.zpwoot-secure.tls=true"
+    environment:
+      - ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+

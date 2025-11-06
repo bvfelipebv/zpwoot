@@ -1,10 +1,10 @@
 # ========================================
-# ZPMeow - WhatsApp Multi-Device API
+# zpwoot - WhatsApp Multi-Device API
 # Makefile - Comandos Essenciais
 # ========================================
 
 # Variáveis
-APP_NAME=zpmeow
+APP_NAME=zpwoot
 BINARY_DIR=bin
 BINARY_PATH=$(BINARY_DIR)/$(APP_NAME)
 MAIN_PATH=./cmd/zpwoot/main.go
@@ -19,7 +19,7 @@ NC=\033[0m
 
 .PHONY: help
 help: ## Mostra comandos disponíveis
-	@echo "$(GREEN)ZPMeow - WhatsApp Multi-Device API$(NC)"
+	@echo "$(GREEN)zpwoot - WhatsApp Multi-Device API$(NC)"
 	@echo "$(YELLOW)Comandos disponíveis:$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
 

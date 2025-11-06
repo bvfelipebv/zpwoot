@@ -1,5 +1,5 @@
 # ========================================
-# ZPMeow - WhatsApp Multi-Device API
+# zpwoot - WhatsApp Multi-Device API
 # Docker Compose - PRODUÇÃO
 # ========================================
 # Serviços: PostgreSQL + NATS + zpwoot API
@@ -9,7 +9,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: zpmeow-postgres
+    container_name: zpwoot-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-zpwoot}
@@ -26,12 +26,12 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - zpmeow-network
+      - zpwoot-network
 
   # NATS Message Broker (para webhooks)
   nats:
     image: nats:latest
-    container_name: zpmeow-nats
+    container_name: zpwoot-nats
     restart: unless-stopped
     ports:
       - "4222:4222"   # Client connections
@@ -46,14 +46,14 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - zpmeow-network
+      - zpwoot-network
 
   # zpwoot API
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: zpmeow-api
+    container_name: zpwoot-api
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -78,7 +78,7 @@ services:
       nats:
         condition: service_healthy
     networks:
-      - zpmeow-network
+      - zpwoot-network
 
 volumes:
   postgres_data:
@@ -87,6 +87,6 @@ volumes:
     driver: local
 
 networks:
-  zpmeow-network:
+  zpwoot-network:
     driver: bridge
 

@@ -1,5 +1,5 @@
 # ========================================
-# ZPMeow - WhatsApp Multi-Device API
+# zpwoot - WhatsApp Multi-Device API
 # Docker Compose - DESENVOLVIMENTO
 # ========================================
 # Serviços: PostgreSQL + NATS + DBGate + Webhook Tester
@@ -9,7 +9,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: zpmeow-dev-postgres
+    container_name: zpwoot-dev-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-zpwoot}
@@ -26,12 +26,12 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - zpmeow-dev-network
+      - zpwoot-dev-network
 
   # NATS Message Broker (para webhooks)
   nats:
     image: nats:latest
-    container_name: zpmeow-dev-nats
+    container_name: zpwoot-dev-nats
     restart: unless-stopped
     ports:
       - "4222:4222"   # Client connections
@@ -46,18 +46,18 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - zpmeow-dev-network
+      - zpwoot-dev-network
 
   # DBGate (interface moderna para gerenciar PostgreSQL)
   dbgate:
     image: dbgate/dbgate:latest
-    container_name: zpmeow-dev-dbgate
+    container_name: zpwoot-dev-dbgate
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       CONNECTIONS: con1
-      LABEL_con1: zpmeow PostgreSQL Dev
+      LABEL_con1: zpwoot PostgreSQL Dev
       SERVER_con1: postgres
       USER_con1: ${POSTGRES_USER:-zpwoot}
       PASSWORD_con1: ${POSTGRES_PASSWORD:-zpwoot_dev_password}
@@ -68,12 +68,12 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - zpmeow-dev-network
+      - zpwoot-dev-network
 
   # Webhook Tester (para testar webhooks em desenvolvimento)
   webhook-tester:
     image: ghcr.io/tarampampam/webhook-tester:2
-    container_name: zpmeow-dev-webhook-tester
+    container_name: zpwoot-dev-webhook-tester
     restart: unless-stopped
     ports:
       - "8090:8080"   # UI e endpoint de webhooks
@@ -82,13 +82,13 @@ services:
       - AUTO_CREATE_SESSIONS=true
       - MAX_REQUESTS=512
     networks:
-      - zpmeow-dev-network
+      - zpwoot-dev-network
 
 volumes:
   postgres_dev_data:
     driver: local
 
 networks:
-  zpmeow-dev-network:
+  zpwoot-dev-network:
     driver: bridge
 

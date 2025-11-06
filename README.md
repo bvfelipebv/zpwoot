@@ -1,4 +1,4 @@
-# 🐱 zpmeow - WhatsApp Multi-Device API
+# 🐱 zpwoot - WhatsApp Multi-Device API
 
 API REST completa para gerenciar múltiplas sessões WhatsApp usando whatsmeow.
 

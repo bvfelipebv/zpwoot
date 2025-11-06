@@ -2,7 +2,7 @@
 
 ## 📋 Descrição
 
-Este pacote contém todas as constantes de eventos de webhook suportados pelo zpmeow, baseadas na biblioteca oficial [whatsmeow](https://pkg.go.dev/go.mau.fi/whatsmeow/types/events).
+Este pacote contém todas as constantes de eventos de webhook suportados pelo zpwoot, baseadas na biblioteca oficial [whatsmeow](https://pkg.go.dev/go.mau.fi/whatsmeow/types/events).
 
 ## 🎯 Uso
 
