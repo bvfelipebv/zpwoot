@@ -31,6 +31,14 @@ type UpdateWebhookRequest struct {
 	Webhook WebhookConfig `json:"webhook" binding:"required"`
 }
 
+// SetWebhookRequest - Request para configurar webhook de uma sessão
+type SetWebhookRequest struct {
+	Enabled bool     `json:"enabled" example:"true"`
+	URL     string   `json:"url" binding:"required_if=Enabled true,omitempty,url" example:"https://hooks.exemplo.com/whatsapp"`
+	Events  []string `json:"events" binding:"omitempty" example:"message,status,qr,connected,disconnected"`
+	Token   string   `json:"token,omitempty" example:"Bearer secret-token-123"`
+}
+
 type ConnectSessionRequest struct {
 	AutoReconnect bool `json:"auto_reconnect" binding:"omitempty" example:"true"`
 }

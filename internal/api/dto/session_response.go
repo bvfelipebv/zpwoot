@@ -63,3 +63,13 @@ type SuccessResponse struct {
 	Data    interface{} `json:"data,omitempty" swaggertype:"object"`
 }
 
+// WebhookConfigResponse - Resposta com configuração de webhook
+type WebhookConfigResponse struct {
+	SessionID string   `json:"session_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Enabled   bool     `json:"enabled" example:"true"`
+	URL       string   `json:"url" example:"https://hooks.exemplo.com/whatsapp"`
+	Events    []string `json:"events" example:"message,status,qr,connected,disconnected"`
+	Token     string   `json:"token,omitempty" example:"Bearer secret-token-123"`
+	UpdatedAt time.Time `json:"updated_at" example:"2025-11-06T10:30:00Z"`
+}
+

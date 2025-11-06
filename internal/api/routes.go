@@ -29,6 +29,13 @@ func RegisterRoutes(r *gin.Engine, sessionHandler *handlers.SessionHandler, mess
 	sessions := r.Group("/sessions")
 	sessions.Use(middleware.AuthenticateGlobal())
 	{
+		// === ROTAS DE EVENTOS DE WEBHOOK (GLOBAIS) ===
+		// GET /sessions/webhook/events - Listar todos os eventos suportados
+		sessions.GET("/webhook/events", sessionHandler.ListWebhookEvents)
+
+		// GET /sessions/webhook/events/:category - Listar eventos por categoria
+		sessions.GET("/webhook/events/:category", sessionHandler.GetEventsByCategory)
+
 		// POST /sessions/create - Criar nova sessão
 		sessions.POST("/create", sessionHandler.CreateSession)
 
@@ -56,8 +63,18 @@ func RegisterRoutes(r *gin.Engine, sessionHandler *handlers.SessionHandler, mess
 		// GET /sessions/:id/status - Obter status da sessão
 		sessions.GET("/:id/status", sessionHandler.GetSessionStatus)
 
-		// PUT /sessions/:id/webhook - Atualizar webhook
-		sessions.PUT("/:id/webhook", sessionHandler.UpdateSessionWebhook)
+		// === ROTAS DE WEBHOOK ===
+		webhook := sessions.Group("/:id/webhook")
+		{
+			// POST /sessions/:id/webhook/set - Configurar/Atualizar webhook
+			webhook.POST("/set", sessionHandler.SetWebhook)
+
+			// GET /sessions/:id/webhook/find - Obter configuração de webhook
+			webhook.GET("/find", sessionHandler.FindWebhook)
+
+			// DELETE /sessions/:id/webhook/clear - Limpar/Desabilitar webhook
+			webhook.DELETE("/clear", sessionHandler.ClearWebhook)
+		}
 
 		// === ROTAS DE MENSAGENS ===
 		messages := sessions.Group("/:id/message")

@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	"zpwoot/internal/api/dto"
+	"zpwoot/internal/constants"
 	"zpwoot/internal/model"
 	"zpwoot/internal/service"
 	"zpwoot/pkg/logger"
@@ -295,8 +297,8 @@ func (h *SessionHandler) GetSessionStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, status)
 }
 
-// @Summary Atualizar webhook
-// @Description Atualiza a URL e eventos do webhook de uma sessão
+// @Summary Atualizar webhook (DEPRECATED)
+// @Description Atualiza a URL e eventos do webhook de uma sessão (use /webhook/set)
 // @Tags Sessions
 // @Accept json
 // @Produce json
@@ -307,6 +309,7 @@ func (h *SessionHandler) GetSessionStatus(c *gin.Context) {
 // @Failure 500 {object} dto.ErrorResponse
 // @Security ApiKeyAuth
 // @Router /sessions/{id}/webhook [put]
+// @Deprecated
 func (h *SessionHandler) UpdateSessionWebhook(c *gin.Context) {
 	sessionID := c.Param("id")
 
@@ -339,6 +342,262 @@ func (h *SessionHandler) UpdateSessionWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.SuccessResponse{
 		Success: true,
 		Message: "Webhook updated successfully",
+	})
+}
+
+// @Summary Configurar webhook
+// @Description Configura ou atualiza o webhook de uma sessão específica com seus eventos subscritos
+// @Tags Webhook
+// @Accept json
+// @Produce json
+// @Param id path string true "Session ID"
+// @Param request body dto.SetWebhookRequest true "Configurações de webhook"
+// @Success 200 {object} dto.WebhookConfigResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Security ApiKeyAuth
+// @Router /sessions/{id}/webhook/set [post]
+func (h *SessionHandler) SetWebhook(c *gin.Context) {
+	sessionID := c.Param("id")
+
+	var req dto.SetWebhookRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "invalid_request",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Validar eventos se fornecidos
+	if len(req.Events) > 0 {
+		for _, event := range req.Events {
+			if !constants.IsValidEventType(event) {
+				c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+					Error:   "invalid_event",
+					Message: fmt.Sprintf("Invalid event type: %s. Use /webhook/events to see supported events", event),
+				})
+				return
+			}
+		}
+	}
+
+	// Se enabled=true mas URL vazia, retornar erro
+	if req.Enabled && req.URL == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "invalid_request",
+			Message: "URL is required when webhook is enabled",
+		})
+		return
+	}
+
+	// Converter DTO para model
+	webhookConfig := &model.WebhookConfig{
+		Enabled: req.Enabled,
+		URL:     req.URL,
+		Events:  req.Events,
+		Token:   req.Token,
+	}
+
+	// Se eventos não fornecidos e webhook habilitado, usar eventos padrão
+	if req.Enabled && len(webhookConfig.Events) == 0 {
+		webhookConfig.Events = constants.DefaultWebhookEvents
+	}
+
+	// Atualizar configuração
+	if err := h.sessionManager.UpdateWebhookConfig(c.Request.Context(), sessionID, webhookConfig); err != nil {
+		logger.Log.Error().Err(err).Str("session_id", sessionID).Msg("Failed to set webhook")
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "update_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Buscar sessão atualizada para retornar
+	session, err := h.sessionManager.GetSession(c.Request.Context(), sessionID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "fetch_failed",
+			Message: "Webhook configured but failed to fetch updated session",
+		})
+		return
+	}
+
+	logger.Log.Info().
+		Str("session_id", sessionID).
+		Bool("enabled", req.Enabled).
+		Str("url", req.URL).
+		Int("events_count", len(req.Events)).
+		Msg("Webhook configuration updated")
+
+	// Retornar configuração atualizada
+	response := dto.WebhookConfigResponse{
+		SessionID: sessionID,
+		Enabled:   webhookConfig.Enabled,
+		URL:       webhookConfig.URL,
+		Events:    webhookConfig.Events,
+		Token:     webhookConfig.Token,
+		UpdatedAt: session.UpdatedAt,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// @Summary Obter configuração de webhook
+// @Description Retorna a configuração atual de webhook e seus eventos subscritos
+// @Tags Webhook
+// @Produce json
+// @Param id path string true "Session ID"
+// @Success 200 {object} dto.WebhookConfigResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Security ApiKeyAuth
+// @Router /sessions/{id}/webhook/find [get]
+func (h *SessionHandler) FindWebhook(c *gin.Context) {
+	sessionID := c.Param("id")
+
+	// Buscar sessão
+	session, err := h.sessionManager.GetSession(c.Request.Context(), sessionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{
+			Error:   "session_not_found",
+			Message: fmt.Sprintf("Session not found: %s", sessionID),
+		})
+		return
+	}
+
+	// Preparar resposta
+	response := dto.WebhookConfigResponse{
+		SessionID: sessionID,
+		Enabled:   false,
+		URL:       "",
+		Events:    []string{},
+		Token:     "",
+		UpdatedAt: session.UpdatedAt,
+	}
+
+	// Se tem configuração de webhook, preencher
+	if session.WebhookConfig != nil {
+		response.Enabled = session.WebhookConfig.Enabled
+		response.URL = session.WebhookConfig.URL
+		response.Events = session.WebhookConfig.Events
+		response.Token = session.WebhookConfig.Token
+	}
+
+	logger.Log.Info().
+		Str("session_id", sessionID).
+		Bool("enabled", response.Enabled).
+		Msg("Webhook configuration retrieved")
+
+	c.JSON(http.StatusOK, response)
+}
+
+// @Summary Limpar configuração de webhook
+// @Description Remove/desabilita a configuração de webhook de uma sessão
+// @Tags Webhook
+// @Produce json
+// @Param id path string true "Session ID"
+// @Success 200 {object} dto.SuccessResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Security ApiKeyAuth
+// @Router /sessions/{id}/webhook/clear [delete]
+func (h *SessionHandler) ClearWebhook(c *gin.Context) {
+	sessionID := c.Param("id")
+
+	// Verificar se sessão existe
+	_, err := h.sessionManager.GetSession(c.Request.Context(), sessionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{
+			Error:   "session_not_found",
+			Message: fmt.Sprintf("Session not found: %s", sessionID),
+		})
+		return
+	}
+
+	// Criar configuração vazia/desabilitada
+	webhookConfig := &model.WebhookConfig{
+		Enabled: false,
+		URL:     "",
+		Events:  []string{},
+		Token:   "",
+	}
+
+	// Atualizar configuração
+	if err := h.sessionManager.UpdateWebhookConfig(c.Request.Context(), sessionID, webhookConfig); err != nil {
+		logger.Log.Error().Err(err).Str("session_id", sessionID).Msg("Failed to clear webhook")
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "clear_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	logger.Log.Info().
+		Str("session_id", sessionID).
+		Msg("Webhook configuration cleared")
+
+	c.JSON(http.StatusOK, dto.SuccessResponse{
+		Success: true,
+		Message: "Webhook configuration cleared successfully",
+	})
+}
+
+// @Summary Listar eventos de webhook suportados
+// @Description Retorna lista completa de todos os eventos de webhook suportados, organizados por categoria
+// @Tags Webhook
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Security ApiKeyAuth
+// @Router /sessions/webhook/events [get]
+func (h *SessionHandler) ListWebhookEvents(c *gin.Context) {
+	response := gin.H{
+		"total":             len(constants.SupportedEventTypes),
+		"events":            constants.SupportedEventTypes,
+		"events_by_category": constants.AllWebhookEvents,
+		"categories":        constants.GetAllCategories(),
+		"default_events":    constants.DefaultWebhookEvents,
+		"critical_events":   constants.CriticalEvents,
+		"description": map[string]string{
+			"total":               "Total de eventos suportados",
+			"events":              "Lista plana de todos os eventos",
+			"events_by_category":  "Eventos organizados por categoria",
+			"categories":          "Lista de categorias disponíveis",
+			"default_events":      "Eventos padrão quando nenhum é especificado",
+			"critical_events":     "Eventos críticos que sempre devem ser monitorados",
+		},
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// @Summary Listar eventos por categoria
+// @Description Retorna eventos de uma categoria específica
+// @Tags Webhook
+// @Produce json
+// @Param category path string true "Category name" Enums(messages, groups, connection, privacy, sync, calls, presence, identity, newsletter, facebook, special)
+// @Success 200 {object} map[string]interface{}
+// @Failure 404 {object} dto.ErrorResponse
+// @Security ApiKeyAuth
+// @Router /sessions/webhook/events/{category} [get]
+func (h *SessionHandler) GetEventsByCategory(c *gin.Context) {
+	category := c.Param("category")
+
+	events := constants.GetEventsByCategory(category)
+	if len(events) == 0 {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{
+			Error:   "category_not_found",
+			Message: fmt.Sprintf("Category '%s' not found. Available categories: %v", category, constants.GetAllCategories()),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"category": category,
+		"events":   events,
+		"count":    len(events),
 	})
 }
 
