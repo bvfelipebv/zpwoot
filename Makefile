@@ -267,6 +267,38 @@ clean-all: clean ## Remove arquivos compilados e cache
 	@echo "$(GREEN)✅ Limpeza completa concluída$(NC)"
 
 # ========================================
+# Comandos Docker Build
+# ========================================
+
+.PHONY: docker-build
+docker-build: ## Build da imagem Docker
+	@echo "$(YELLOW)Building Docker image...$(NC)"
+	@./scripts/docker-build.sh
+
+.PHONY: docker-push
+docker-push: ## Push da imagem Docker para Docker Hub
+	@echo "$(YELLOW)Pushing Docker image...$(NC)"
+	@./scripts/docker-push.sh
+
+.PHONY: docker-release
+docker-release: ## Build + Push da imagem Docker
+	@echo "$(YELLOW)Building and pushing Docker image...$(NC)"
+	@./scripts/docker-release.sh
+
+.PHONY: docker-build-compose
+docker-build-compose: ## Build usando docker-compose
+	@echo "$(YELLOW)Building with docker-compose...$(NC)"
+	@docker-compose -f docker-compose.build.yml build
+
+.PHONY: docker-test
+docker-test: docker-build ## Build e testa a imagem localmente
+	@echo "$(YELLOW)Testing Docker image...$(NC)"
+	@docker run --rm -p 8080:8080 \
+		-e DATABASE_URL="postgres://zpwoot:zpwoot_password_change_in_production@host.docker.internal:5432/zpwoot?sslmode=disable" \
+		-e NATS_URL="nats://host.docker.internal:4222" \
+		${DOCKER_USERNAME:-zpwoot}/zpwoot:${VERSION:-latest}
+
+# ========================================
 # Comandos Úteis
 # ========================================
 
