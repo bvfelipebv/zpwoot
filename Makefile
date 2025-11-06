@@ -95,246 +95,124 @@ test-coverage: ## Testes com cobertura
 	@echo "$(GREEN)✅ Cobertura: coverage.html$(NC)"
 
 # ========================================
-# Comandos de Qualidade de Código
+# Qualidade de Código
 # ========================================
 
 .PHONY: fmt
-fmt: ## Formata o código
-	@echo "$(YELLOW)Formatando código...$(NC)"
+fmt: ## Formata código
 	@$(GO) fmt ./...
-	@echo "$(GREEN)✅ Código formatado$(NC)"
 
 .PHONY: vet
-vet: ## Analisa o código com go vet
-	@echo "$(YELLOW)Analisando código...$(NC)"
+vet: ## Analisa código
 	@$(GO) vet ./...
-	@echo "$(GREEN)✅ Análise concluída$(NC)"
-
-.PHONY: lint
-lint: ## Executa linter (requer golangci-lint)
-	@echo "$(YELLOW)Executando linter...$(NC)"
-	@if command -v golangci-lint > /dev/null; then \
-		golangci-lint run ./...; \
-		echo "$(GREEN)✅ Linting concluído$(NC)"; \
-	else \
-		echo "$(RED)❌ golangci-lint não instalado$(NC)"; \
-		echo "$(YELLOW)Instale com: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin$(NC)"; \
-	fi
-
-.PHONY: check
-check: fmt vet ## Formata e analisa o código
-	@echo "$(GREEN)✅ Verificações concluídas$(NC)"
 
 # ========================================
-# Comandos de Docker
+# Docker - Produção
 # ========================================
-
-.PHONY: docker-build
-docker-build: ## Constrói a imagem Docker
-	@echo "$(YELLOW)Construindo imagem Docker...$(NC)"
-	@docker build -t $(APP_NAME):latest .
-	@echo "$(GREEN)✅ Imagem Docker construída$(NC)"
 
 .PHONY: docker-up
-docker-up: ## Inicia os containers Docker
+docker-up: ## Inicia containers (produção)
 	@echo "$(YELLOW)Iniciando containers...$(NC)"
 	@docker compose up -d
 	@echo "$(GREEN)✅ Containers iniciados$(NC)"
 
 .PHONY: docker-down
-docker-down: ## Para os containers Docker
-	@echo "$(YELLOW)Parando containers...$(NC)"
+docker-down: ## Para containers
 	@docker compose down
-	@echo "$(GREEN)✅ Containers parados$(NC)"
 
 .PHONY: docker-logs
-docker-logs: ## Mostra logs dos containers
+docker-logs: ## Logs dos containers
 	@docker compose logs -f
 
-.PHONY: docker-ps
-docker-ps: ## Lista containers em execução
-	@docker compose ps
-
-.PHONY: docker-restart
-docker-restart: docker-down docker-up ## Reinicia os containers
-
-.PHONY: db-up
-db-up: ## Inicia apenas o PostgreSQL
-	@echo "$(YELLOW)Iniciando PostgreSQL...$(NC)"
-	@docker compose up -d postgres
-	@echo "$(GREEN)✅ PostgreSQL iniciado$(NC)"
-
-.PHONY: db-down
-db-down: ## Para o PostgreSQL
-	@echo "$(YELLOW)Parando PostgreSQL...$(NC)"
-	@docker compose stop postgres
-	@echo "$(GREEN)✅ PostgreSQL parado$(NC)"
-
-.PHONY: db-logs
-db-logs: ## Mostra logs do PostgreSQL
-	@docker compose logs -f postgres
-
-.PHONY: dbgate-up
-dbgate-up: ## Inicia DBGate (interface web do banco)
-	@echo "$(YELLOW)Iniciando DBGate...$(NC)"
-	@docker compose up -d dbgate
-	@echo "$(GREEN)✅ DBGate disponível em http://localhost:3000$(NC)"
+.PHONY: docker-build
+docker-build: ## Build imagem Docker
+	@docker compose build
 
 # ========================================
-# Comandos de Limpeza
+# Docker - Desenvolvimento
+# ========================================
+
+.PHONY: dev-up
+dev-up: ## Inicia ambiente dev (postgres+nats+dbgate+webhook)
+	@echo "$(YELLOW)Iniciando ambiente de desenvolvimento...$(NC)"
+	@docker compose -f docker-compose.dev.yml up -d
+	@echo "$(GREEN)✅ Ambiente dev iniciado$(NC)"
+	@echo "$(YELLOW)Serviços disponíveis:$(NC)"
+	@echo "  PostgreSQL:      localhost:5432"
+	@echo "  NATS:            localhost:4222"
+	@echo "  NATS Monitor:    http://localhost:8222"
+	@echo "  DBGate:          http://localhost:3000"
+	@echo "  Webhook Tester:  http://localhost:8090"
+
+.PHONY: dev-down
+dev-down: ## Para ambiente dev
+	@docker compose -f docker-compose.dev.yml down
+
+.PHONY: dev-logs
+dev-logs: ## Logs do ambiente dev
+	@docker compose -f docker-compose.dev.yml logs -f
+
+.PHONY: dev-restart
+dev-restart: dev-down dev-up ## Reinicia ambiente dev
+
+# ========================================
+# Serviços Individuais
+# ========================================
+
+.PHONY: db-up
+db-up: ## Inicia PostgreSQL
+	@docker compose -f docker-compose.dev.yml up -d postgres
+	@echo "$(GREEN)✅ PostgreSQL: localhost:5432$(NC)"
+
+.PHONY: nats-up
+nats-up: ## Inicia NATS
+	@docker compose -f docker-compose.dev.yml up -d nats
+	@echo "$(GREEN)✅ NATS: localhost:4222$(NC)"
+
+.PHONY: dbgate-up
+dbgate-up: ## Inicia DBGate
+	@docker compose -f docker-compose.dev.yml up -d dbgate
+	@echo "$(GREEN)✅ DBGate: http://localhost:3000$(NC)"
+
+.PHONY: webhook-up
+webhook-up: ## Inicia Webhook Tester
+	@docker compose -f docker-compose.dev.yml up -d webhook-tester
+	@echo "$(GREEN)✅ Webhook Tester: http://localhost:8090$(NC)"
+
+# ========================================
+# Utilitários
 # ========================================
 
 .PHONY: clean
 clean: ## Remove arquivos compilados
-	@echo "$(YELLOW)Limpando arquivos...$(NC)"
-	@rm -rf $(BINARY_DIR)
-	@rm -f coverage.out coverage.html
-	@echo "$(GREEN)✅ Limpeza concluída$(NC)"
-
-.PHONY: clean-all
-clean-all: clean ## Remove arquivos compilados e cache
-	@echo "$(YELLOW)Limpeza completa...$(NC)"
-	@$(GO) clean -cache -testcache -modcache
-	@rm -rf vendor
-	@echo "$(GREEN)✅ Limpeza completa concluída$(NC)"
-
-# ========================================
-# Comandos Docker Build
-# ========================================
-
-.PHONY: docker-build
-docker-build: ## Build da imagem Docker
-	@echo "$(YELLOW)Building Docker image...$(NC)"
-	@./scripts/docker-build.sh
-
-.PHONY: docker-push
-docker-push: ## Push da imagem Docker para Docker Hub
-	@echo "$(YELLOW)Pushing Docker image...$(NC)"
-	@./scripts/docker-push.sh
-
-.PHONY: docker-release
-docker-release: ## Build + Push da imagem Docker
-	@echo "$(YELLOW)Building and pushing Docker image...$(NC)"
-	@./scripts/docker-release.sh
-
-.PHONY: docker-build-compose
-docker-build-compose: ## Build usando docker-compose
-	@echo "$(YELLOW)Building with docker-compose...$(NC)"
-	@docker-compose -f docker-compose.build.yml build
-
-.PHONY: docker-test
-docker-test: docker-build ## Build e testa a imagem localmente
-	@echo "$(YELLOW)Testing Docker image...$(NC)"
-	@docker run --rm -p 8080:8080 \
-		-e DATABASE_URL="postgres://zpwoot:zpwoot_password_change_in_production@host.docker.internal:5432/zpwoot?sslmode=disable" \
-		-e NATS_URL="nats://host.docker.internal:4222" \
-		${DOCKER_USERNAME:-zpwoot}/zpwoot:${VERSION:-latest}
-
-# ========================================
-# Comandos Úteis
-# ========================================
-
-.PHONY: version
-version: ## Mostra versão do Go
-	@$(GO) version
-
-.PHONY: info
-info: ## Mostra informações do projeto
-	@echo "$(GREEN)ZPWoot - WhatsApp Multi-Device API$(NC)"
-	@echo "$(YELLOW)Informações do Projeto:$(NC)"
-	@echo "  App Name:     $(APP_NAME)"
-	@echo "  Binary Path:  $(BINARY_PATH)"
-	@echo "  Main Path:    $(MAIN_PATH)"
-	@echo "  Docs Dir:     $(DOCS_DIR)"
-	@echo ""
-	@echo "$(YELLOW)Versão do Go:$(NC)"
-	@$(GO) version
-	@echo ""
-	@echo "$(YELLOW)Módulos:$(NC)"
-	@$(GO) list -m all | head -5
-
-.PHONY: health
-health: ## Verifica se a API está rodando
-	@echo "$(YELLOW)Verificando saúde da API...$(NC)"
-	@curl -s http://localhost:8080/health | jq . || echo "$(RED)❌ API não está respondendo$(NC)"
-
-.PHONY: swagger-ui
-swagger-ui: ## Abre o Swagger UI no navegador
-	@echo "$(YELLOW)Abrindo Swagger UI...$(NC)"
-	@if command -v xdg-open > /dev/null; then \
-		xdg-open http://localhost:8080/swagger/index.html; \
-	elif command -v open > /dev/null; then \
-		open http://localhost:8080/swagger/index.html; \
-	else \
-		echo "$(YELLOW)Acesse: http://localhost:8080/swagger/index.html$(NC)"; \
-	fi
+	@rm -rf $(BINARY_DIR) coverage.out coverage.html
 
 .PHONY: kill
-kill: ## Mata processos rodando na porta 8080
-	@echo "$(YELLOW)Procurando processos na porta 8080...$(NC)"
+kill: ## Mata processo na porta 8080
 	@if command -v lsof > /dev/null 2>&1; then \
-		PID=$$(lsof -ti:8080 2>/dev/null); \
-		if [ -z "$$PID" ]; then \
-			echo "$(GREEN)✅ Nenhum processo rodando na porta 8080$(NC)"; \
-		else \
-			echo "$(YELLOW)Matando processo(s): $$PID$(NC)"; \
-			kill -9 $$PID && echo "$(GREEN)✅ Processo(s) finalizado(s)$(NC)" || echo "$(RED)❌ Erro ao matar processo$(NC)"; \
-		fi; \
-	elif command -v fuser > /dev/null 2>&1; then \
-		if fuser 8080/tcp > /dev/null 2>&1; then \
-			echo "$(YELLOW)Matando processo na porta 8080...$(NC)"; \
-			fuser -k 8080/tcp && echo "$(GREEN)✅ Processo finalizado$(NC)" || echo "$(RED)❌ Erro ao matar processo$(NC)"; \
-		else \
-			echo "$(GREEN)✅ Nenhum processo rodando na porta 8080$(NC)"; \
-		fi; \
+		lsof -ti:8080 2>/dev/null | xargs -r kill -9 && echo "$(GREEN)✅ Processo finalizado$(NC)" || echo "$(GREEN)✅ Porta livre$(NC)"; \
 	else \
-		PID=$$(ss -lptn 'sport = :8080' 2>/dev/null | grep -oP 'pid=\K[0-9]+' | head -1); \
-		if [ -z "$$PID" ]; then \
-			PID=$$(netstat -tlnp 2>/dev/null | grep ':8080' | awk '{print $$7}' | cut -d'/' -f1 | head -1); \
-		fi; \
-		if [ -z "$$PID" ]; then \
-			echo "$(GREEN)✅ Nenhum processo rodando na porta 8080$(NC)"; \
-		else \
-			echo "$(YELLOW)Matando processo: $$PID$(NC)"; \
-			kill -9 $$PID && echo "$(GREEN)✅ Processo finalizado$(NC)" || echo "$(RED)❌ Erro ao matar processo$(NC)"; \
-		fi; \
+		fuser -k 8080/tcp 2>/dev/null && echo "$(GREEN)✅ Processo finalizado$(NC)" || echo "$(GREEN)✅ Porta livre$(NC)"; \
 	fi
 
-.PHONY: port-check
-port-check: ## Verifica qual processo está usando a porta 8080
-	@echo "$(YELLOW)Verificando porta 8080...$(NC)"
-	@if command -v lsof > /dev/null 2>&1; then \
-		lsof -i:8080 2>/dev/null || echo "$(GREEN)✅ Porta 8080 está livre$(NC)"; \
-	elif command -v ss > /dev/null 2>&1; then \
-		ss -lptn 'sport = :8080' 2>/dev/null || echo "$(GREEN)✅ Porta 8080 está livre$(NC)"; \
-	else \
-		netstat -tlnp 2>/dev/null | grep ':8080' || echo "$(GREEN)✅ Porta 8080 está livre$(NC)"; \
-	fi
+.PHONY: health
+health: ## Verifica saúde da API
+	@curl -s http://localhost:8080/health | jq . || echo "$(RED)API não está respondendo$(NC)"
 
 # ========================================
 # Comandos Compostos
 # ========================================
 
 .PHONY: setup
-setup: deps install-tools swagger ## Configuração inicial do projeto
+setup: deps install-tools swagger ## Setup inicial completo
 	@echo "$(GREEN)✅ Setup completo!$(NC)"
 	@echo "$(YELLOW)Próximos passos:$(NC)"
-	@echo "  1. Configure o arquivo .env"
-	@echo "  2. Execute: make db-up"
-	@echo "  3. Execute: make run"
+	@echo "  1. make dev-up    # Inicia ambiente dev"
+	@echo "  2. make run       # Executa a API"
 
 .PHONY: all
-all: clean deps swagger build ## Executa limpeza, deps, swagger e build
-	@echo "$(GREEN)✅ Build completo concluído!$(NC)"
+all: clean tidy swagger build ## Build completo
 
-.PHONY: rebuild
-rebuild: clean build ## Limpa e reconstrói o projeto
-	@echo "$(GREEN)✅ Rebuild concluído!$(NC)"
-
-.PHONY: deploy-prep
-deploy-prep: clean deps test swagger build-all ## Prepara para deploy
-	@echo "$(GREEN)✅ Preparação para deploy concluída!$(NC)"
-
-# Default target
+# Default
 .DEFAULT_GOAL := help
 
