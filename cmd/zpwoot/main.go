@@ -132,9 +132,7 @@ func main() {
 	messageHandler := handlers.NewMessageHandler(sessionManager)
 
 	// Setup Gin
-	if config.AppConfig.Environment == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	}
+	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
 	r.Use(gin.Recovery())

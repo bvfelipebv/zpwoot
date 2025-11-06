@@ -17,9 +17,7 @@ func InitDB() error {
 	dsn := config.GetDatabaseDSN()
 	driver := config.AppConfig.DatabaseDriver
 
-	logger.Log.Info().
-		Str("driver", driver).
-		Msg("Initializing database connection")
+
 
 	// Abrir conexão
 	db, err := sql.Open(driver, dsn)
@@ -43,7 +41,6 @@ func InitDB() error {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
-	logger.Log.Info().Msg("Database initialized successfully")
 	return nil
 }
 

@@ -54,12 +54,6 @@ func (c *Client) Connect() error {
 	}
 
 	c.conn = conn
-
-	logger.Log.Info().
-		Str("url", c.url).
-		Str("server_id", conn.ConnectedServerId()).
-		Msg("Connected to NATS")
-
 	return nil
 }
 
@@ -86,10 +80,6 @@ func (c *Client) Subscribe(subject string, handler nats.MsgHandler) (*nats.Subsc
 		return nil, fmt.Errorf("failed to subscribe to %s: %w", subject, err)
 	}
 
-	logger.Log.Info().
-		Str("subject", subject).
-		Msg("Subscribed to NATS subject")
-
 	return sub, nil
 }
 
@@ -102,11 +92,6 @@ func (c *Client) QueueSubscribe(subject, queue string, handler nats.MsgHandler) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to queue subscribe to %s: %w", subject, err)
 	}
-
-	logger.Log.Info().
-		Str("subject", subject).
-		Str("queue", queue).
-		Msg("Queue subscribed to NATS subject")
 
 	return sub, nil
 }
@@ -125,7 +110,6 @@ func (c *Client) Stats() nats.Statistics {
 func (c *Client) Close() {
 	if c.conn != nil {
 		c.conn.Close()
-		logger.Log.Info().Msg("NATS connection closed")
 	}
 }
 

@@ -109,14 +109,6 @@ func InitWithConfig(cfg Config) {
 
 	// Set time field format
 	zerolog.TimeFieldFormat = time.RFC3339Nano
-
-	// Log initialization
-	Log.Info().
-		Str(FieldLogLevel, cfg.Level).
-		Str("format", cfg.Format).
-		Bool("caller", cfg.AddCaller).
-		Int("sample_rate", cfg.SampleRate).
-		Msg("Logger initialized")
 }
 
 func parseLevel(level string) zerolog.Level {

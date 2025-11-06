@@ -21,8 +21,6 @@ type Migration struct {
 }
 
 func RunMigrations(ctx context.Context) error {
-	logger.Log.Info().Msg("Starting database migrations...")
-
 	// Criar tabela de controle de migrações
 	if err := createMigrationsTable(ctx); err != nil {
 		return fmt.Errorf("failed to create migrations table: %w", err)
@@ -41,31 +39,23 @@ func RunMigrations(ctx context.Context) error {
 	}
 
 	// Executar migrações pendentes
+	pendingCount := 0
 	for _, migration := range migrations {
 		if _, applied := appliedVersions[migration.Version]; applied {
-			logger.Log.Debug().
-				Int("version", migration.Version).
-				Str("name", migration.Name).
-				Msg("Migration already applied, skipping")
 			continue
 		}
-
-		logger.Log.Info().
-			Int("version", migration.Version).
-			Str("name", migration.Name).
-			Msg("Applying migration")
 
 		if err := applyMigration(ctx, migration); err != nil {
 			return fmt.Errorf("failed to apply migration %d (%s): %w", migration.Version, migration.Name, err)
 		}
-
-		logger.Log.Info().
-			Int("version", migration.Version).
-			Str("name", migration.Name).
-			Msg("Migration applied successfully")
+		pendingCount++
 	}
 
-	logger.Log.Info().Msg("All migrations completed successfully")
+	if pendingCount > 0 {
+		logger.Log.Info().
+			Int("applied", pendingCount).
+			Msg("Database migrations completed")
+	}
 	return nil
 }
 
