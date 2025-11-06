@@ -41,25 +41,25 @@ type WebhookConfig struct {
 }
 
 type Session struct {
-	ID            string // UUID gerado automaticamente
-	Name          string
-	DeviceJID     string // JID do WhatsApp (após pareamento)
-	Status        string // disconnected, connecting, connected, pairing, failed, logged_out
-	Connected     bool   // Flag rápida de conexão
+	ID        string // UUID gerado automaticamente
+	Name      string
+	DeviceJID string // JID do WhatsApp (após pareamento)
+	Status    string // disconnected, connecting, connected, pairing, failed, logged_out
+	Connected bool   // Flag rápida de conexão
 
 	// WhatsApp data
-	QRCode        string // Base64 QR code para pareamento
+	QRCode string // Base64 QR code para pareamento
 
 	// Configuration (JSON)
 	ProxyConfig   *ProxyConfig   // Configuração de proxy
 	WebhookConfig *WebhookConfig // Configuração de webhook
 
 	// Authentication
-	APIKey        *string // API key para autenticação da sessão (opcional)
+	APIKey *string // API key para autenticação da sessão (opcional)
 
 	// Timestamps
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (s *Session) IsConnected() bool {

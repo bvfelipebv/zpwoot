@@ -140,4 +140,3 @@ func (f *WebhookFormatter) FormatPicture(sessionID string, evt *events.Picture) 
 		Data:      data,
 	}
 }
-

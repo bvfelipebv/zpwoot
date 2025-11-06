@@ -25,11 +25,11 @@ func NewWebhookDelivery(timeout time.Duration) *WebhookDelivery {
 }
 
 type DeliveryResult struct {
-	Success        bool
-	StatusCode     int
-	ResponseBody   string
-	Error          error
-	Duration       time.Duration
+	Success      bool
+	StatusCode   int
+	ResponseBody string
+	Error        error
+	Duration     time.Duration
 }
 
 func (d *WebhookDelivery) Send(url string, payload []byte, token string) *DeliveryResult {
@@ -42,7 +42,7 @@ func (d *WebhookDelivery) Send(url string, payload []byte, token string) *Delive
 			Err(err).
 			Str("url", url).
 			Msg("Failed to create webhook request")
-		
+
 		return &DeliveryResult{
 			Success:  false,
 			Error:    fmt.Errorf("failed to create request: %w", err),
@@ -53,7 +53,7 @@ func (d *WebhookDelivery) Send(url string, payload []byte, token string) *Delive
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "zpwoot-webhook/1.0")
-	
+
 	if token != "" {
 		req.Header.Set("Authorization", token)
 	}
@@ -68,7 +68,7 @@ func (d *WebhookDelivery) Send(url string, payload []byte, token string) *Delive
 			Str("url", url).
 			Dur("duration", duration).
 			Msg("Failed to send webhook")
-		
+
 		return &DeliveryResult{
 			Success:  false,
 			Error:    fmt.Errorf("failed to send request: %w", err),
@@ -140,4 +140,3 @@ func IsRetryableError(result *DeliveryResult) bool {
 	// Don't retry on 4xx client errors (except 408 and 429)
 	return false
 }
-

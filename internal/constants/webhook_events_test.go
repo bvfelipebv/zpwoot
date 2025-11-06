@@ -114,11 +114,11 @@ func TestGetEventsByCategory(t *testing.T) {
 
 func TestGetAllCategories(t *testing.T) {
 	categories := GetAllCategories()
-	
+
 	if len(categories) == 0 {
 		t.Error("GetAllCategories() returned empty slice")
 	}
-	
+
 	// Verificar se categorias esperadas existem
 	expectedCategories := []string{"messages", "connection", "calls", "presence"}
 	for _, expected := range expectedCategories {
@@ -227,7 +227,7 @@ func TestDefaultWebhookEvents(t *testing.T) {
 	if len(DefaultWebhookEvents) == 0 {
 		t.Error("DefaultWebhookEvents is empty")
 	}
-	
+
 	// Verificar se todos os eventos padrão são válidos
 	for _, event := range DefaultWebhookEvents {
 		if !IsValidEventType(event) {
@@ -240,7 +240,7 @@ func TestCriticalEvents(t *testing.T) {
 	if len(CriticalEvents) == 0 {
 		t.Error("CriticalEvents is empty")
 	}
-	
+
 	// Verificar se todos os eventos críticos são válidos
 	for _, event := range CriticalEvents {
 		if !IsValidEventType(event) {
@@ -253,7 +253,7 @@ func TestSupportedEventTypes(t *testing.T) {
 	if len(SupportedEventTypes) == 0 {
 		t.Error("SupportedEventTypes is empty")
 	}
-	
+
 	// Verificar se não há duplicatas
 	seen := make(map[string]bool)
 	for _, event := range SupportedEventTypes {
@@ -263,4 +263,3 @@ func TestSupportedEventTypes(t *testing.T) {
 		seen[event] = true
 	}
 }
-

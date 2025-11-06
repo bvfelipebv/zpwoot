@@ -13,13 +13,13 @@ import (
 )
 
 type WebhookWorker struct {
-	id              int
-	natsClient      *natsclient.Client
-	delivery        *WebhookDelivery
-	maxRetries      int
-	retryBaseDelay  time.Duration
-	subscription    *nats.Subscription
-	log             zerolog.Logger // Worker-specific logger with context
+	id             int
+	natsClient     *natsclient.Client
+	delivery       *WebhookDelivery
+	maxRetries     int
+	retryBaseDelay time.Duration
+	subscription   *nats.Subscription
+	log            zerolog.Logger // Worker-specific logger with context
 }
 
 func NewWebhookWorker(
@@ -194,4 +194,3 @@ func (w *WebhookWorker) calculateRetryDelay(attempt int) time.Duration {
 	multiplier := math.Pow(5, float64(attempt-1))
 	return time.Duration(float64(w.retryBaseDelay) * multiplier)
 }
-

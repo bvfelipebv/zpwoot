@@ -464,24 +464,24 @@ var EventTypeMap map[string]bool
 // DefaultWebhookEvents eventos padrão quando nenhum é especificado
 // Inclui os eventos mais comuns que a maioria dos usuários precisa
 var DefaultWebhookEvents = []string{
-	string(EventMessage),           // Mensagens recebidas
-	string(EventReceipt),            // Confirmações de entrega/leitura
-	string(EventQR),                 // QR Code para pareamento
-	string(EventConnected),          // Conexão estabelecida
-	string(EventDisconnected),       // Desconectado
-	string(EventLoggedOut),          // Deslogado
+	string(EventMessage),      // Mensagens recebidas
+	string(EventReceipt),      // Confirmações de entrega/leitura
+	string(EventQR),           // QR Code para pareamento
+	string(EventConnected),    // Conexão estabelecida
+	string(EventDisconnected), // Desconectado
+	string(EventLoggedOut),    // Deslogado
 }
 
 // CriticalEvents eventos críticos relacionados ao estado da conexão
 // Estes eventos devem sempre ser monitorados para manter a sessão saudável
 var CriticalEvents = []string{
-	string(EventConnected),          // Conexão estabelecida
-	string(EventDisconnected),       // Desconectado
-	string(EventLoggedOut),          // Deslogado do telefone
-	string(EventStreamReplaced),     // Login em outro lugar
-	string(EventTemporaryBan),       // Conta banida temporariamente
-	string(EventClientOutdated),     // Cliente desatualizado
-	string(EventKeepAliveTimeout),   // Timeout de keepalive
+	string(EventConnected),        // Conexão estabelecida
+	string(EventDisconnected),     // Desconectado
+	string(EventLoggedOut),        // Deslogado do telefone
+	string(EventStreamReplaced),   // Login em outro lugar
+	string(EventTemporaryBan),     // Conta banida temporariamente
+	string(EventClientOutdated),   // Cliente desatualizado
+	string(EventKeepAliveTimeout), // Timeout de keepalive
 }
 
 // RecommendedEvents eventos recomendados para a maioria dos casos de uso
@@ -604,58 +604,58 @@ func IsConnectionEvent(eventType string) bool {
 func GetEventDescription(eventType string) string {
 	descriptions := map[string]string{
 		// Messages
-		string(EventMessage):               "Mensagem recebida (texto, mídia, documentos, etc)",
-		string(EventUndecryptableMessage):  "Mensagem que não pôde ser descriptografada",
-		string(EventReceipt):               "Confirmação de entrega/leitura de mensagem",
-		string(EventMediaRetry):            "Resposta a solicitação de reenvio de mídia",
-		string(EventDeleteForMe):           "Mensagem deletada apenas para o usuário",
+		string(EventMessage):              "Mensagem recebida (texto, mídia, documentos, etc)",
+		string(EventUndecryptableMessage): "Mensagem que não pôde ser descriptografada",
+		string(EventReceipt):              "Confirmação de entrega/leitura de mensagem",
+		string(EventMediaRetry):           "Resposta a solicitação de reenvio de mídia",
+		string(EventDeleteForMe):          "Mensagem deletada apenas para o usuário",
 
 		// Groups & Contacts
-		string(EventGroupInfo):             "Metadados de grupo alterados",
-		string(EventJoinedGroup):           "Entrou ou foi adicionado a um grupo",
-		string(EventPicture):               "Foto de perfil alterada",
-		string(EventBlocklistChange):       "Mudança individual na lista de bloqueados",
-		string(EventBlocklist):             "Lista completa de bloqueados atualizada",
-		string(EventContact):               "Entrada na lista de contatos modificada",
-		string(EventPushName):              "Nome de exibição de contato mudou",
-		string(EventBusinessName):          "Nome comercial verificado mudou",
+		string(EventGroupInfo):       "Metadados de grupo alterados",
+		string(EventJoinedGroup):     "Entrou ou foi adicionado a um grupo",
+		string(EventPicture):         "Foto de perfil alterada",
+		string(EventBlocklistChange): "Mudança individual na lista de bloqueados",
+		string(EventBlocklist):       "Lista completa de bloqueados atualizada",
+		string(EventContact):         "Entrada na lista de contatos modificada",
+		string(EventPushName):        "Nome de exibição de contato mudou",
+		string(EventBusinessName):    "Nome comercial verificado mudou",
 
 		// Connection
-		string(EventConnected):             "Conectado e autenticado com sucesso",
-		string(EventDisconnected):          "WebSocket fechado pelo servidor",
-		string(EventConnectFailure):        "Servidor rejeitou a conexão",
-		string(EventKeepAliveRestored):     "Pings keepalive restaurados",
-		string(EventKeepAliveTimeout):      "Ping keepalive expirou",
-		string(EventLoggedOut):             "Desconectado do telefone",
-		string(EventClientOutdated):        "Cliente desatualizado",
-		string(EventTemporaryBan):          "Conta temporariamente banida",
-		string(EventStreamError):           "Erro de stream desconhecido",
-		string(EventStreamReplaced):        "Login em outro dispositivo",
-		string(EventPairSuccess):           "QR code escaneado com sucesso",
-		string(EventPairError):             "Erro no pareamento",
-		string(EventQR):                    "QR code gerado",
+		string(EventConnected):                   "Conectado e autenticado com sucesso",
+		string(EventDisconnected):                "WebSocket fechado pelo servidor",
+		string(EventConnectFailure):              "Servidor rejeitou a conexão",
+		string(EventKeepAliveRestored):           "Pings keepalive restaurados",
+		string(EventKeepAliveTimeout):            "Ping keepalive expirou",
+		string(EventLoggedOut):                   "Desconectado do telefone",
+		string(EventClientOutdated):              "Cliente desatualizado",
+		string(EventTemporaryBan):                "Conta temporariamente banida",
+		string(EventStreamError):                 "Erro de stream desconhecido",
+		string(EventStreamReplaced):              "Login em outro dispositivo",
+		string(EventPairSuccess):                 "QR code escaneado com sucesso",
+		string(EventPairError):                   "Erro no pareamento",
+		string(EventQR):                          "QR code gerado",
 		string(EventQRScannedWithoutMultidevice): "QR escaneado sem multidevice",
-		string(EventManualLoginReconnect):  "Reconexão manual necessária após login",
+		string(EventManualLoginReconnect):        "Reconexão manual necessária após login",
 
 		// Privacy
-		string(EventPrivacySettings):       "Configurações de privacidade alteradas",
-		string(EventPushNameSetting):       "Push name alterado de outro dispositivo",
-		string(EventUserAbout):             "Status/sobre de usuário alterado",
-		string(EventUserStatusMute):        "Atualizações de status silenciadas/dessilenciadas",
+		string(EventPrivacySettings): "Configurações de privacidade alteradas",
+		string(EventPushNameSetting): "Push name alterado de outro dispositivo",
+		string(EventUserAbout):       "Status/sobre de usuário alterado",
+		string(EventUserStatusMute):  "Atualizações de status silenciadas/dessilenciadas",
 
 		// Calls
-		string(EventCallOffer):             "Chamada recebida",
-		string(EventCallAccept):            "Chamada aceita",
-		string(EventCallTerminate):         "Chamada terminada",
-		string(EventCallOfferNotice):       "Notificação de oferta de chamada",
-		string(EventCallRelayLatency):      "Latência do relay de chamada",
+		string(EventCallOffer):        "Chamada recebida",
+		string(EventCallAccept):       "Chamada aceita",
+		string(EventCallTerminate):    "Chamada terminada",
+		string(EventCallOfferNotice):  "Notificação de oferta de chamada",
+		string(EventCallRelayLatency): "Latência do relay de chamada",
 
 		// Presence
-		string(EventPresence):              "Atualização de presença (online/offline)",
-		string(EventChatPresence):          "Estado de chat (digitando, gravando)",
+		string(EventPresence):     "Atualização de presença (online/offline)",
+		string(EventChatPresence): "Estado de chat (digitando, gravando)",
 
 		// Special
-		string(EventAll):                   "Recebe TODOS os eventos",
+		string(EventAll): "Recebe TODOS os eventos",
 	}
 
 	if desc, ok := descriptions[eventType]; ok {
@@ -691,4 +691,3 @@ func GetEventCategory(eventType string) string {
 	}
 	return "unknown"
 }
-

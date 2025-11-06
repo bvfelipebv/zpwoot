@@ -13,13 +13,13 @@ func GenerateQRCodeImage(content string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to generate QR code: %w", err)
 	}
-	
+
 	// Converter para base64
 	base64Str := base64.StdEncoding.EncodeToString(png)
-	
+
 	// Retornar como data URL
 	dataURL := fmt.Sprintf("data:image/png;base64,%s", base64Str)
-	
+
 	return dataURL, nil
 }
 
@@ -27,12 +27,11 @@ func GenerateQRCodePNG(content string, size int) ([]byte, error) {
 	if size <= 0 {
 		size = 256
 	}
-	
+
 	png, err := qrcode.Encode(content, qrcode.Medium, size)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate QR code: %w", err)
 	}
-	
+
 	return png, nil
 }
-

@@ -41,4 +41,3 @@ type SetWebhookRequest struct {
 type ConnectSessionRequest struct {
 	AutoReconnect bool `json:"auto_reconnect" binding:"omitempty" example:"true"`
 }
-

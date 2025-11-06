@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"go.mau.fi/whatsmeow"
+	waProto "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
-	waProto "go.mau.fi/whatsmeow/binary/proto"
 
 	"zpwoot/pkg/logger"
 )
@@ -55,14 +55,14 @@ func (m *SessionManager) SendImageMessage(ctx context.Context, client *whatsmeow
 	// Criar mensagem de imagem
 	msg := &waProto.Message{
 		ImageMessage: &waProto.ImageMessage{
-			Caption:        proto.String(caption),
-			URL:            proto.String(uploaded.URL),
-			DirectPath:     proto.String(uploaded.DirectPath),
-			MediaKey:       uploaded.MediaKey,
-			Mimetype:       proto.String(mimeType),
-			FileEncSHA256:  uploaded.FileEncSHA256,
-			FileSHA256:     uploaded.FileSHA256,
-			FileLength:     proto.Uint64(uint64(len(imageData))),
+			Caption:       proto.String(caption),
+			URL:           proto.String(uploaded.URL),
+			DirectPath:    proto.String(uploaded.DirectPath),
+			MediaKey:      uploaded.MediaKey,
+			Mimetype:      proto.String(mimeType),
+			FileEncSHA256: uploaded.FileEncSHA256,
+			FileSHA256:    uploaded.FileSHA256,
+			FileLength:    proto.Uint64(uint64(len(imageData))),
 		},
 	}
 
@@ -725,4 +725,3 @@ func parseJID(phone string) (types.JID, error) {
 	// Se já contém @, parsear diretamente
 	return types.ParseJID(phone)
 }
-

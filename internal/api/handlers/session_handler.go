@@ -554,19 +554,19 @@ func (h *SessionHandler) ClearWebhook(c *gin.Context) {
 // @Router /sessions/webhook/events [get]
 func (h *SessionHandler) ListWebhookEvents(c *gin.Context) {
 	response := gin.H{
-		"total":             len(constants.SupportedEventTypes),
-		"events":            constants.SupportedEventTypes,
+		"total":              len(constants.SupportedEventTypes),
+		"events":             constants.SupportedEventTypes,
 		"events_by_category": constants.AllWebhookEvents,
-		"categories":        constants.GetAllCategories(),
-		"default_events":    constants.DefaultWebhookEvents,
-		"critical_events":   constants.CriticalEvents,
+		"categories":         constants.GetAllCategories(),
+		"default_events":     constants.DefaultWebhookEvents,
+		"critical_events":    constants.CriticalEvents,
 		"description": map[string]string{
-			"total":               "Total de eventos suportados",
-			"events":              "Lista plana de todos os eventos",
-			"events_by_category":  "Eventos organizados por categoria",
-			"categories":          "Lista de categorias disponíveis",
-			"default_events":      "Eventos padrão quando nenhum é especificado",
-			"critical_events":     "Eventos críticos que sempre devem ser monitorados",
+			"total":              "Total de eventos suportados",
+			"events":             "Lista plana de todos os eventos",
+			"events_by_category": "Eventos organizados por categoria",
+			"categories":         "Lista de categorias disponíveis",
+			"default_events":     "Eventos padrão quando nenhum é especificado",
+			"critical_events":    "Eventos críticos que sempre devem ser monitorados",
 		},
 	}
 

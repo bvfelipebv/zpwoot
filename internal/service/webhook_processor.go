@@ -155,4 +155,3 @@ func ValidateWebhookConfig(config *model.WebhookConfig) error {
 
 	return nil
 }
-

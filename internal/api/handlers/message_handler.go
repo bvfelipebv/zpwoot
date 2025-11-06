@@ -673,4 +673,3 @@ func (h *MessageHandler) EditMessage(c *gin.Context) {
 
 	c.JSON(http.StatusOK, dto.MessageResponse{Success: true, MessageID: messageID, Timestamp: timestamp.Unix(), Phone: req.Phone})
 }
-

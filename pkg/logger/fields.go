@@ -6,7 +6,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-
 func SessionFields(sessionID, status string, connected bool) *zerolog.Event {
 	return Log.Info().
 		Str(FieldSessionID, sessionID).
@@ -70,4 +69,3 @@ func PerformanceFields(operation string, duration time.Duration, success bool) *
 		Dur(FieldDuration, duration).
 		Bool("success", success)
 }
-

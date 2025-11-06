@@ -67,10 +67,10 @@ type SendReactionRequest struct {
 }
 
 type SendPollRequest struct {
-	Phone          string   `json:"phone" binding:"required" example:"5511999999999"`
-	Question       string   `json:"question" binding:"required" example:"What's your favorite color?"`
-	Options        []string `json:"options" binding:"required" example:"Red,Blue,Green"`
-	SelectableCount int     `json:"selectableCount,omitempty" example:"1"`
+	Phone           string   `json:"phone" binding:"required" example:"5511999999999"`
+	Question        string   `json:"question" binding:"required" example:"What's your favorite color?"`
+	Options         []string `json:"options" binding:"required" example:"Red,Blue,Green"`
+	SelectableCount int      `json:"selectableCount,omitempty" example:"1"`
 }
 
 type MarkAsReadRequest struct {
@@ -102,9 +102,9 @@ type MessageResponse struct {
 }
 
 type PollResultsResponse struct {
-	Question string              `json:"question" example:"What's your favorite color?"`
-	Options  []PollOptionResult  `json:"options"`
-	Voters   []PollVoter         `json:"voters"`
+	Question string             `json:"question" example:"What's your favorite color?"`
+	Options  []PollOptionResult `json:"options"`
+	Voters   []PollVoter        `json:"voters"`
 }
 
 type PollOptionResult struct {
@@ -117,4 +117,3 @@ type PollVoter struct {
 	Options   []string `json:"options" example:"Red"`
 	Timestamp int64    `json:"timestamp" example:"1699999999"`
 }
-

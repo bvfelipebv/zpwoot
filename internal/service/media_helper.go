@@ -146,4 +146,3 @@ func detectMimeType(data []byte) string {
 
 	return mimeType
 }
-
