@@ -1,6 +1,6 @@
 # ========================================
-# ZPWoot - WhatsApp Multi-Device API
-# Makefile para comandos básicos
+# ZPMeow - WhatsApp Multi-Device API
+# Makefile - Comandos Essenciais
 # ========================================
 
 # Variáveis
@@ -10,157 +10,89 @@ BINARY_PATH=$(BINARY_DIR)/$(APP_NAME)
 MAIN_PATH=./cmd/zpwoot/main.go
 DOCS_DIR=docs
 GO=go
-SWAG=swag
 
-# Cores para output
+# Cores
 GREEN=\033[0;32m
 YELLOW=\033[1;33m
 RED=\033[0;31m
-NC=\033[0m # No Color
+NC=\033[0m
 
 .PHONY: help
-help: ## Mostra esta mensagem de ajuda
-	@echo "$(GREEN)ZPWoot - WhatsApp Multi-Device API$(NC)"
+help: ## Mostra comandos disponíveis
+	@echo "$(GREEN)ZPMeow - WhatsApp Multi-Device API$(NC)"
 	@echo "$(YELLOW)Comandos disponíveis:$(NC)"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
 
 # ========================================
-# Comandos de Build
+# Build & Run
 # ========================================
 
 .PHONY: build
 build: ## Compila o projeto
-	@echo "$(YELLOW)Compilando $(APP_NAME)...$(NC)"
+	@echo "$(YELLOW)Compilando...$(NC)"
 	@mkdir -p $(BINARY_DIR)
 	@$(GO) build -o $(BINARY_PATH) $(MAIN_PATH)
-	@echo "$(GREEN)✅ Build concluído: $(BINARY_PATH)$(NC)"
-
-.PHONY: build-linux
-build-linux: ## Compila para Linux
-	@echo "$(YELLOW)Compilando para Linux...$(NC)"
-	@mkdir -p $(BINARY_DIR)
-	@GOOS=linux GOARCH=amd64 $(GO) build -o $(BINARY_DIR)/$(APP_NAME)-linux-amd64 $(MAIN_PATH)
-	@echo "$(GREEN)✅ Build Linux concluído$(NC)"
-
-.PHONY: build-windows
-build-windows: ## Compila para Windows
-	@echo "$(YELLOW)Compilando para Windows...$(NC)"
-	@mkdir -p $(BINARY_DIR)
-	@GOOS=windows GOARCH=amd64 $(GO) build -o $(BINARY_DIR)/$(APP_NAME)-windows-amd64.exe $(MAIN_PATH)
-	@echo "$(GREEN)✅ Build Windows concluído$(NC)"
-
-.PHONY: build-mac
-build-mac: ## Compila para macOS
-	@echo "$(YELLOW)Compilando para macOS...$(NC)"
-	@mkdir -p $(BINARY_DIR)
-	@GOOS=darwin GOARCH=amd64 $(GO) build -o $(BINARY_DIR)/$(APP_NAME)-darwin-amd64 $(MAIN_PATH)
-	@echo "$(GREEN)✅ Build macOS concluído$(NC)"
-
-.PHONY: build-all
-build-all: build-linux build-windows build-mac ## Compila para todas as plataformas
-	@echo "$(GREEN)✅ Build completo para todas as plataformas$(NC)"
-
-# ========================================
-# Comandos de Execução
-# ========================================
+	@echo "$(GREEN)✅ Build concluído$(NC)"
 
 .PHONY: run
 run: ## Executa o projeto
-	@echo "$(YELLOW)Executando $(APP_NAME)...$(NC)"
 	@$(GO) run $(MAIN_PATH)
 
-.PHONY: start
-start: build ## Compila e executa o projeto
-	@echo "$(YELLOW)Iniciando $(APP_NAME)...$(NC)"
-	@./$(BINARY_PATH)
-
-# ========================================
-# Comandos de Desenvolvimento
-# ========================================
-
 .PHONY: dev
-dev: ## Executa em modo desenvolvimento com hot reload (requer air)
-	@echo "$(YELLOW)Iniciando em modo desenvolvimento...$(NC)"
+dev: ## Modo desenvolvimento (hot reload)
 	@if command -v air > /dev/null; then \
 		air; \
 	else \
-		echo "$(RED)❌ Air não instalado. Instale com: go install github.com/cosmtrek/air@latest$(NC)"; \
-		echo "$(YELLOW)Executando sem hot reload...$(NC)"; \
+		echo "$(RED)Air não instalado. Execute: make install-tools$(NC)"; \
 		$(GO) run $(MAIN_PATH); \
 	fi
 
+# ========================================
+# Dependências
+# ========================================
+
+.PHONY: deps
+deps: ## Baixa dependências
+	@$(GO) mod download
+
+.PHONY: tidy
+tidy: ## Organiza dependências
+	@$(GO) mod tidy
+
 .PHONY: install-tools
-install-tools: ## Instala ferramentas de desenvolvimento
+install-tools: ## Instala ferramentas (swag, air)
 	@echo "$(YELLOW)Instalando ferramentas...$(NC)"
 	@$(GO) install github.com/swaggo/swag/cmd/swag@latest
 	@$(GO) install github.com/cosmtrek/air@latest
 	@echo "$(GREEN)✅ Ferramentas instaladas$(NC)"
 
 # ========================================
-# Comandos de Dependências
-# ========================================
-
-.PHONY: deps
-deps: ## Baixa as dependências do projeto
-	@echo "$(YELLOW)Baixando dependências...$(NC)"
-	@$(GO) mod download
-	@echo "$(GREEN)✅ Dependências baixadas$(NC)"
-
-.PHONY: tidy
-tidy: ## Organiza as dependências
-	@echo "$(YELLOW)Organizando dependências...$(NC)"
-	@$(GO) mod tidy
-	@echo "$(GREEN)✅ Dependências organizadas$(NC)"
-
-.PHONY: vendor
-vendor: ## Cria pasta vendor com dependências
-	@echo "$(YELLOW)Criando vendor...$(NC)"
-	@$(GO) mod vendor
-	@echo "$(GREEN)✅ Vendor criado$(NC)"
-
-# ========================================
-# Comandos de Documentação
+# Documentação
 # ========================================
 
 .PHONY: swagger
 swagger: ## Gera documentação Swagger
-	@echo "$(YELLOW)Gerando documentação Swagger...$(NC)"
+	@echo "$(YELLOW)Gerando Swagger...$(NC)"
 	@if command -v swag > /dev/null 2>&1; then \
 		swag init -g $(MAIN_PATH) --output $(DOCS_DIR); \
-		echo "$(GREEN)✅ Documentação Swagger gerada em $(DOCS_DIR)$(NC)"; \
-	elif [ -f $(HOME)/go/bin/swag ]; then \
-		$(HOME)/go/bin/swag init -g $(MAIN_PATH) --output $(DOCS_DIR); \
-		echo "$(GREEN)✅ Documentação Swagger gerada em $(DOCS_DIR)$(NC)"; \
+		echo "$(GREEN)✅ Swagger gerado$(NC)"; \
 	else \
-		echo "$(RED)❌ Swag não instalado. Execute: make install-tools$(NC)"; \
+		echo "$(RED)Swag não instalado. Execute: make install-tools$(NC)"; \
 	fi
 
-.PHONY: swagger-fmt
-swagger-fmt: ## Formata anotações Swagger
-	@echo "$(YELLOW)Formatando anotações Swagger...$(NC)"
-	@swag fmt
-	@echo "$(GREEN)✅ Anotações formatadas$(NC)"
-
 # ========================================
-# Comandos de Testes
+# Testes
 # ========================================
 
 .PHONY: test
-test: ## Executa os testes
-	@echo "$(YELLOW)Executando testes...$(NC)"
+test: ## Executa testes
 	@$(GO) test -v ./...
 
 .PHONY: test-coverage
-test-coverage: ## Executa testes com cobertura
-	@echo "$(YELLOW)Executando testes com cobertura...$(NC)"
+test-coverage: ## Testes com cobertura
 	@$(GO) test -v -coverprofile=coverage.out ./...
 	@$(GO) tool cover -html=coverage.out -o coverage.html
-	@echo "$(GREEN)✅ Relatório de cobertura gerado: coverage.html$(NC)"
-
-.PHONY: test-race
-test-race: ## Executa testes com detector de race condition
-	@echo "$(YELLOW)Executando testes com race detector...$(NC)"
-	@$(GO) test -race -v ./...
+	@echo "$(GREEN)✅ Cobertura: coverage.html$(NC)"
 
 # ========================================
 # Comandos de Qualidade de Código

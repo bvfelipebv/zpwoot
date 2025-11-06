@@ -1,8 +1,8 @@
 # ========================================
 # ZPMeow - WhatsApp Multi-Device API
-# Docker Compose - PRODUÇÃO
+# Docker Compose - DESENVOLVIMENTO
 # ========================================
-# Serviços: PostgreSQL + NATS + zpwoot API
+# Serviços: PostgreSQL + NATS + DBGate + Webhook Tester
 # ========================================
 
 version: '3.8'
@@ -11,29 +11,29 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: zpmeow-postgres
+    container_name: zpmeow-dev-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-zpwoot}
       POSTGRES_USER: ${POSTGRES_USER:-zpwoot}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zpwoot_password_change_in_production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zpwoot_dev_password}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zpwoot} -d ${POSTGRES_DB:-zpwoot}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - zpmeow-network
+      - zpmeow-dev-network
 
   # NATS Message Broker (para webhooks)
   nats:
     image: nats:latest
-    container_name: zpmeow-nats
+    container_name: zpmeow-dev-nats
     restart: unless-stopped
     ports:
       - "4222:4222"   # Client connections
@@ -48,47 +48,49 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - zpmeow-network
+      - zpmeow-dev-network
 
-  # zpwoot API
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: zpmeow-api
+  # DBGate (interface moderna para gerenciar PostgreSQL)
+  dbgate:
+    image: dbgate/dbgate:latest
+    container_name: zpmeow-dev-dbgate
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "3000:3000"
     environment:
-      PORT: ${PORT:-8080}
-      ENVIRONMENT: production
-      DATABASE_DRIVER: postgres
-      DATABASE_URL: postgres://${POSTGRES_USER:-zpwoot}:${POSTGRES_PASSWORD:-zpwoot_password_change_in_production}@postgres:5432/${POSTGRES_DB:-zpwoot}?sslmode=disable
-      NATS_URL: nats://nats:4222
-      API_KEY: ${API_KEY:-your-secret-api-key-here}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-      WHATSAPP_DATA_DIR: /app/data
-      MAX_SESSIONS: ${MAX_SESSIONS:-10}
-      CONNECTION_TIMEOUT: ${CONNECTION_TIMEOUT:-30}
-      PAIRING_TIMEOUT: ${PAIRING_TIMEOUT:-120}
-      AUTO_RESTORE_SESSIONS: ${AUTO_RESTORE_SESSIONS:-true}
-    volumes:
-      - whatsapp_data:/app/data
+      CONNECTIONS: con1
+      LABEL_con1: zpmeow PostgreSQL Dev
+      SERVER_con1: postgres
+      USER_con1: ${POSTGRES_USER:-zpwoot}
+      PASSWORD_con1: ${POSTGRES_PASSWORD:-zpwoot_dev_password}
+      PORT_con1: 5432
+      ENGINE_con1: postgres@dbgate-plugin-postgres
+      DATABASE_con1: ${POSTGRES_DB:-zpwoot}
     depends_on:
       postgres:
         condition: service_healthy
-      nats:
-        condition: service_healthy
     networks:
-      - zpmeow-network
+      - zpmeow-dev-network
+
+  # Webhook Tester (para testar webhooks em desenvolvimento)
+  webhook-tester:
+    image: ghcr.io/tarampampam/webhook-tester:2
+    container_name: zpmeow-dev-webhook-tester
+    restart: unless-stopped
+    ports:
+      - "8090:8080"   # UI e endpoint de webhooks
+    environment:
+      - LOG_LEVEL=debug
+      - AUTO_CREATE_SESSIONS=true
+      - MAX_REQUESTS=512
+    networks:
+      - zpmeow-dev-network
 
 volumes:
-  postgres_data:
-    driver: local
-  whatsapp_data:
+  postgres_dev_data:
     driver: local
 
 networks:
-  zpmeow-network:
+  zpmeow-dev-network:
     driver: bridge
 
