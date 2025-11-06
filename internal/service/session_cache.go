@@ -7,7 +7,6 @@ import (
 
 	"github.com/patrickmn/go-cache"
 	"zpwoot/internal/model"
-	"zpwoot/pkg/logger"
 )
 
 // SessionCache gerencia cache de informações de sessões
@@ -58,7 +57,7 @@ func InitSessionCache() {
 	sessionInfoCache = &SessionCache{
 		cache: cache.New(cache.NoExpiration, 10*time.Minute),
 	}
-	logger.Log.Info().Msg("Session cache initialized")
+
 }
 
 // GetSessionCache retorna a instância do cache

@@ -49,7 +49,7 @@ func NewWhatsAppService(db *sql.DB) (*WhatsAppService, error) {
 	store.DeviceProps.PlatformType = waCompanionReg.DeviceProps_UNKNOWN.Enum()
 	store.DeviceProps.Os = proto.String(osName)
 
-	logger.Log.Info().Msg("WhatsApp service initialized successfully")
+
 
 	return &WhatsAppService{
 		db: db,

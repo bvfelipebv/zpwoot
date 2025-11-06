@@ -530,9 +530,7 @@ func (m *SessionManager) RestoreAllSessions(ctx context.Context) error {
 		return fmt.Errorf("failed to list connected sessions: %w", err)
 	}
 
-	logger.Log.Info().
-		Int("count", len(sessions)).
-		Msg("Restoring connected sessions")
+
 
 	for _, session := range sessions {
 		logger.Log.Info().

@@ -8,7 +8,6 @@ import (
 	_ "github.com/lib/pq" // PostgreSQL driver
 
 	"zpwoot/internal/config"
-	"zpwoot/pkg/logger"
 )
 
 var DB *sql.DB
