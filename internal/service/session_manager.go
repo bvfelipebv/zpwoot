@@ -50,6 +50,9 @@ func NewSessionManager(
 	webhookProcessor *WebhookProcessor,
 	webhookFormatter *WebhookFormatter,
 ) *SessionManager {
+	// Inicializar cache de sessões
+	InitSessionCache()
+
 	manager := &SessionManager{
 		whatsappSvc: whatsappSvc,
 		sessionRepo: sessionRepo,
@@ -212,15 +215,32 @@ func (m *SessionManager) startClient(sessionID string, textJID string) {
 	const connectionRetryBaseWait = 5 * time.Second
 
 	// Obter ou criar device
+	logger.Log.Debug().
+		Str("session_id", sessionID).
+		Str("jid", textJID).
+		Msg("Getting or creating device store")
+
 	deviceStore, err := m.whatsappSvc.GetOrCreateDevice(ctx, textJID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to get device")
+		logger.Log.Error().
+			Err(err).
+			Str("session_id", sessionID).
+			Msg("Failed to get device")
 		m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
 		return
 	}
 
+	logger.Log.Debug().
+		Str("session_id", sessionID).
+		Bool("has_device_id", deviceStore.ID != nil).
+		Msg("Device store obtained")
+
 	// Criar cliente WhatsApp
 	client := m.whatsappSvc.NewClient(deviceStore, false)
+
+	logger.Log.Debug().
+		Str("session_id", sessionID).
+		Msg("WhatsApp client created")
 
 	// Adicionar ao map de clientes
 	m.clientsMux.Lock()
@@ -252,22 +272,40 @@ func (m *SessionManager) startClient(sessionID string, textJID string) {
 
 	// Verificar se precisa fazer pairing (QR code)
 	if client.Store.ID == nil {
+		logger.Log.Info().
+			Str("session_id", sessionID).
+			Msg("No device ID stored, starting QR code pairing process")
+
 		// No ID stored, new login - precisa QR code
 		qrChan, err := client.GetQRChannel(context.Background())
 		if err != nil {
 			if !errors.Is(err, whatsmeow.ErrQRStoreContainsID) {
-				logger.Log.Error().Err(err).Msg("Failed to get QR channel")
+				logger.Log.Error().
+					Err(err).
+					Str("session_id", sessionID).
+					Msg("Failed to get QR channel")
 				m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
 				return
 			}
 		} else {
+			logger.Log.Debug().
+				Str("session_id", sessionID).
+				Msg("QR channel obtained, connecting client")
+
 			// Conectar ANTES de processar QR codes (IMPORTANTE!)
 			err = client.Connect()
 			if err != nil {
-				logger.Log.Error().Err(err).Msg("Failed to connect client")
+				logger.Log.Error().
+					Err(err).
+					Str("session_id", sessionID).
+					Msg("Failed to connect client for QR pairing")
 				m.sessionRepo.UpdateStatus(ctx, sessionID, "disconnected", false)
 				return
 			}
+
+			logger.Log.Info().
+				Str("session_id", sessionID).
+				Msg("Client connected, waiting for QR codes")
 
 			// Processar QR codes SÍNCRONAMENTE (como no wuzapi!)
 			// O loop só termina quando o canal fecha (após pareamento ou timeout)
@@ -285,7 +323,16 @@ func (m *SessionManager) startClient(sessionID string, textJID string) {
 					// Salvar no banco
 					if err := m.sessionRepo.UpdateQRCode(ctx, sessionID, base64QRCode); err != nil {
 						logger.Log.Error().Err(err).Msg("Failed to save QR code")
+					} else {
+						logger.Log.Debug().
+							Str("session_id", sessionID).
+							Str("qr_length", fmt.Sprintf("%d", len(base64QRCode))).
+							Msg("QR code saved to database")
 					}
+
+					// Atualizar cache da sessão
+					cache := GetSessionCache()
+					cache.UpdateSessionInfo(sessionID, "QRCode", base64QRCode)
 
 					// Atualizar status
 					m.sessionRepo.UpdateStatus(ctx, sessionID, "qr_code", false)

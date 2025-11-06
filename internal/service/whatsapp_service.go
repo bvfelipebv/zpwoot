@@ -20,6 +20,8 @@ import (
 var (
 	// Container global do whatsmeow (similar ao wuzapi)
 	container *sqlstore.Container
+	// Nome do OS para identificação no WhatsApp (baseado no wmial.bak)
+	osName = "zpwoot"
 )
 
 type WhatsAppService struct {
@@ -43,8 +45,9 @@ func NewWhatsAppService(db *sql.DB) (*WhatsAppService, error) {
 	}
 
 	// Configurar propriedades do device (IMPORTANTE para WhatsApp aceitar)
+	// Baseado no wmial.bak que funciona corretamente
 	store.DeviceProps.PlatformType = waCompanionReg.DeviceProps_UNKNOWN.Enum()
-	store.DeviceProps.Os = proto.String("zpwoot")
+	store.DeviceProps.Os = proto.String(osName)
 
 	logger.Log.Info().Msg("WhatsApp service initialized successfully")
 

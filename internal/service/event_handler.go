@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/appstate"
@@ -64,6 +65,28 @@ func (h *EventHandler) handleEvent(sessionID string, evt interface{}) {
 		h.handleHistorySync(sessionID, v)
 	case *events.PushName:
 		h.handlePushName(sessionID, v)
+	// Novos handlers baseados no wmial.bak
+	case *events.StreamReplaced:
+		h.handleStreamReplaced(sessionID, v)
+	case *events.ChatPresence:
+		h.handleChatPresence(sessionID, v)
+	case *events.ConnectFailure:
+		h.handleConnectFailure(sessionID, v)
+	case *events.UndecryptableMessage:
+		h.handleUndecryptableMessage(sessionID, v)
+	case *events.MediaRetry:
+		h.handleMediaRetry(sessionID, v)
+	case *events.CallOffer:
+		h.handleCallOffer(sessionID, v)
+	case *events.CallAccept:
+		h.handleCallAccept(sessionID, v)
+	case *events.CallTerminate:
+		h.handleCallTerminate(sessionID, v)
+	default:
+		logger.Log.Debug().
+			Str("session_id", sessionID).
+			Str("event_type", fmt.Sprintf("%T", evt)).
+			Msg("Unhandled event type")
 	}
 }
 
@@ -319,4 +342,79 @@ func (h *EventHandler) handlePushName(sessionID string, evt *events.PushName) {
 		Msg("Push name updated")
 
 	// TODO: Atualizar push name no banco
+}
+
+// Novos handlers baseados no wmial.bak
+
+func (h *EventHandler) handleStreamReplaced(sessionID string, evt *events.StreamReplaced) {
+	logger.Log.Info().
+		Str("session_id", sessionID).
+		Msg("Received StreamReplaced event")
+	// StreamReplaced não precisa de webhook, apenas log
+}
+
+func (h *EventHandler) handleChatPresence(sessionID string, evt *events.ChatPresence) {
+	logger.Log.Info().
+		Str("session_id", sessionID).
+		Str("state", fmt.Sprintf("%s", evt.State)).
+		Str("media", fmt.Sprintf("%s", evt.Media)).
+		Str("chat", evt.MessageSource.Chat.String()).
+		Str("sender", evt.MessageSource.Sender.String()).
+		Msg("Chat Presence received")
+
+	// TODO: Processar chat presence e enviar webhook
+}
+
+func (h *EventHandler) handleConnectFailure(sessionID string, evt *events.ConnectFailure) {
+	logger.Log.Error().
+		Str("session_id", sessionID).
+		Str("reason", fmt.Sprintf("%+v", evt)).
+		Msg("Failed to connect to WhatsApp")
+
+	// TODO: Processar falha de conexão e enviar webhook
+}
+
+func (h *EventHandler) handleUndecryptableMessage(sessionID string, evt *events.UndecryptableMessage) {
+	logger.Log.Warn().
+		Str("session_id", sessionID).
+		Str("info", evt.Info.SourceString()).
+		Msg("Undecryptable message received")
+
+	// TODO: Processar mensagem não descriptografável e enviar webhook
+}
+
+func (h *EventHandler) handleMediaRetry(sessionID string, evt *events.MediaRetry) {
+	logger.Log.Info().
+		Str("session_id", sessionID).
+		Str("messageID", evt.MessageID).
+		Msg("Media retry event")
+
+	// TODO: Processar retry de mídia e enviar webhook
+}
+
+func (h *EventHandler) handleCallOffer(sessionID string, evt *events.CallOffer) {
+	logger.Log.Info().
+		Str("session_id", sessionID).
+		Str("event", fmt.Sprintf("%+v", evt)).
+		Msg("Got call offer")
+
+	// TODO: Processar oferta de chamada e enviar webhook
+}
+
+func (h *EventHandler) handleCallAccept(sessionID string, evt *events.CallAccept) {
+	logger.Log.Info().
+		Str("session_id", sessionID).
+		Str("event", fmt.Sprintf("%+v", evt)).
+		Msg("Got call accept")
+
+	// TODO: Processar aceitação de chamada e enviar webhook
+}
+
+func (h *EventHandler) handleCallTerminate(sessionID string, evt *events.CallTerminate) {
+	logger.Log.Info().
+		Str("session_id", sessionID).
+		Str("event", fmt.Sprintf("%+v", evt)).
+		Msg("Got call terminate")
+
+	// TODO: Processar término de chamada e enviar webhook
 }
