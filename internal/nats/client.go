@@ -8,7 +8,6 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-// Client wraps NATS connection
 type Client struct {
 	conn          *nats.Conn
 	url           string
@@ -16,14 +15,12 @@ type Client struct {
 	reconnectWait time.Duration
 }
 
-// Config holds NATS client configuration
 type Config struct {
 	URL           string
 	MaxReconnect  int
 	ReconnectWait time.Duration
 }
 
-// NewClient creates a new NATS client
 func NewClient(cfg Config) *Client {
 	return &Client{
 		url:           cfg.URL,
@@ -32,7 +29,6 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-// Connect establishes connection to NATS server
 func (c *Client) Connect() error {
 	opts := []nats.Option{
 		nats.MaxReconnects(c.maxReconnect),
@@ -67,7 +63,6 @@ func (c *Client) Connect() error {
 	return nil
 }
 
-// Publish publishes a message to a subject
 func (c *Client) Publish(subject string, data []byte) error {
 	if c.conn == nil {
 		return fmt.Errorf("NATS connection not established")
@@ -81,7 +76,6 @@ func (c *Client) Publish(subject string, data []byte) error {
 	return nil
 }
 
-// Subscribe subscribes to a subject with a handler
 func (c *Client) Subscribe(subject string, handler nats.MsgHandler) (*nats.Subscription, error) {
 	if c.conn == nil {
 		return nil, fmt.Errorf("NATS connection not established")
@@ -99,7 +93,6 @@ func (c *Client) Subscribe(subject string, handler nats.MsgHandler) (*nats.Subsc
 	return sub, nil
 }
 
-// QueueSubscribe subscribes to a subject with queue group
 func (c *Client) QueueSubscribe(subject, queue string, handler nats.MsgHandler) (*nats.Subscription, error) {
 	if c.conn == nil {
 		return nil, fmt.Errorf("NATS connection not established")
@@ -118,12 +111,10 @@ func (c *Client) QueueSubscribe(subject, queue string, handler nats.MsgHandler) 
 	return sub, nil
 }
 
-// IsConnected checks if connection is active
 func (c *Client) IsConnected() bool {
 	return c.conn != nil && c.conn.IsConnected()
 }
 
-// Stats returns connection statistics
 func (c *Client) Stats() nats.Statistics {
 	if c.conn == nil {
 		return nats.Statistics{}
@@ -131,7 +122,6 @@ func (c *Client) Stats() nats.Statistics {
 	return c.conn.Stats()
 }
 
-// Close closes the NATS connection
 func (c *Client) Close() {
 	if c.conn != nil {
 		c.conn.Close()
@@ -139,7 +129,6 @@ func (c *Client) Close() {
 	}
 }
 
-// Drain drains the connection (graceful shutdown)
 func (c *Client) Drain() error {
 	if c.conn != nil {
 		return c.conn.Drain()

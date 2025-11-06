@@ -63,7 +63,6 @@ type SuccessResponse struct {
 	Data    interface{} `json:"data,omitempty" swaggertype:"object"`
 }
 
-// WebhookConfigResponse - Resposta com configuração de webhook
 type WebhookConfigResponse struct {
 	SessionID string   `json:"session_id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Enabled   bool     `json:"enabled" example:"true"`

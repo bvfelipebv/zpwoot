@@ -11,10 +11,8 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-// Log is the global logger instance
 var Log zerolog.Logger
 
-// Field name constants for consistency across the application
 const (
 	FieldSessionID   = "session_id"
 	FieldWorkerID    = "worker_id"
@@ -38,7 +36,6 @@ const (
 	FieldLogLevel    = "log_level"
 )
 
-// Config holds logger configuration
 type Config struct {
 	Level       string
 	Format      string // "console" or "json"
@@ -49,7 +46,6 @@ type Config struct {
 	Service     string
 }
 
-// DefaultConfig returns default logger configuration
 func DefaultConfig() Config {
 	return Config{
 		Level:       "info",
@@ -62,14 +58,12 @@ func DefaultConfig() Config {
 	}
 }
 
-// Init initializes the global logger with default settings
 func Init(level string) {
 	cfg := DefaultConfig()
 	cfg.Level = level
 	InitWithConfig(cfg)
 }
 
-// InitWithConfig initializes the global logger with custom configuration
 func InitWithConfig(cfg Config) {
 	// Parse log level
 	lvl := parseLevel(cfg.Level)
@@ -125,7 +119,6 @@ func InitWithConfig(cfg Config) {
 		Msg("Logger initialized")
 }
 
-// parseLevel converts string level to zerolog.Level
 func parseLevel(level string) zerolog.Level {
 	switch strings.ToLower(level) {
 	case "trace":
@@ -147,7 +140,6 @@ func parseLevel(level string) zerolog.Level {
 	}
 }
 
-// WithContext creates a logger with context fields
 func WithContext(ctx context.Context) zerolog.Logger {
 	logger := Log
 
@@ -163,22 +155,18 @@ func WithContext(ctx context.Context) zerolog.Logger {
 	return logger
 }
 
-// WithComponent creates a logger for a specific component
 func WithComponent(component string) zerolog.Logger {
 	return Log.With().Str(FieldComponent, component).Logger()
 }
 
-// WithSession creates a logger with session context
 func WithSession(sessionID string) zerolog.Logger {
 	return Log.With().Str(FieldSessionID, sessionID).Logger()
 }
 
-// WithWorker creates a logger with worker context
 func WithWorker(workerID int) zerolog.Logger {
 	return Log.With().Int(FieldWorkerID, workerID).Logger()
 }
 
-// WithFields creates a logger with custom fields
 func WithFields(fields map[string]interface{}) zerolog.Logger {
 	logger := Log.With()
 	for key, value := range fields {
@@ -187,7 +175,6 @@ func WithFields(fields map[string]interface{}) zerolog.Logger {
 	return logger.Logger()
 }
 
-// SetLevel dynamically changes the log level
 func SetLevel(level string) {
 	lvl := parseLevel(level)
 	zerolog.SetGlobalLevel(lvl)
@@ -195,7 +182,6 @@ func SetLevel(level string) {
 	Log.Info().Str(FieldLogLevel, level).Msg("Log level changed")
 }
 
-// GetLevel returns the current log level as string
 func GetLevel() string {
 	return zerolog.GlobalLevel().String()
 }

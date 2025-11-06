@@ -10,13 +10,11 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-// WebhookDelivery handles HTTP delivery of webhooks
 type WebhookDelivery struct {
 	timeout time.Duration
 	client  *http.Client
 }
 
-// NewWebhookDelivery creates a new webhook delivery service
 func NewWebhookDelivery(timeout time.Duration) *WebhookDelivery {
 	return &WebhookDelivery{
 		timeout: timeout,
@@ -26,7 +24,6 @@ func NewWebhookDelivery(timeout time.Duration) *WebhookDelivery {
 	}
 }
 
-// DeliveryResult represents the result of a webhook delivery attempt
 type DeliveryResult struct {
 	Success        bool
 	StatusCode     int
@@ -35,7 +32,6 @@ type DeliveryResult struct {
 	Duration       time.Duration
 }
 
-// Send sends a webhook via HTTP POST
 func (d *WebhookDelivery) Send(url string, payload []byte, token string) *DeliveryResult {
 	startTime := time.Now()
 
@@ -120,7 +116,6 @@ func (d *WebhookDelivery) Send(url string, payload []byte, token string) *Delive
 	}
 }
 
-// IsRetryableError checks if an error should trigger a retry
 func IsRetryableError(result *DeliveryResult) bool {
 	// Retry on network errors
 	if result.Error != nil {

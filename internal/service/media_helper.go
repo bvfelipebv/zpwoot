@@ -12,8 +12,6 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-// downloadOrDecodeMedia baixa mídia de URL ou decodifica base64
-// Retorna: dados, mimeType, erro
 func downloadOrDecodeMedia(mediaURL string) ([]byte, string, error) {
 	// Verifica se é data URL (base64)
 	if strings.HasPrefix(mediaURL, "data:") {
@@ -24,8 +22,6 @@ func downloadOrDecodeMedia(mediaURL string) ([]byte, string, error) {
 	return downloadFromURL(mediaURL)
 }
 
-// decodeBase64Media decodifica data URL base64
-// Formato esperado: data:image/jpeg;base64,XXXXX
 func decodeBase64Media(dataURL string) ([]byte, string, error) {
 	// Encontrar o início dos dados base64
 	parts := strings.SplitN(dataURL, ",", 2)
@@ -60,7 +56,6 @@ func decodeBase64Media(dataURL string) ([]byte, string, error) {
 	return data, mimeType, nil
 }
 
-// downloadFromURL faz download de URL HTTP/HTTPS
 func downloadFromURL(url string) ([]byte, string, error) {
 	// Validar URL
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
@@ -113,7 +108,6 @@ func downloadFromURL(url string) ([]byte, string, error) {
 	return data, mimeType, nil
 }
 
-// detectMimeType detecta o tipo MIME dos dados
 func detectMimeType(data []byte) string {
 	if len(data) == 0 {
 		return "application/octet-stream"

@@ -12,14 +12,12 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-// WebhookProcessor processes events and publishes to NATS
 type WebhookProcessor struct {
 	natsClient  *natsclient.Client
 	formatter   *WebhookFormatter
 	sessionRepo *repository.SessionRepository
 }
 
-// NewWebhookProcessor creates a new webhook processor
 func NewWebhookProcessor(
 	natsClient *natsclient.Client,
 	formatter *WebhookFormatter,
@@ -32,7 +30,6 @@ func NewWebhookProcessor(
 	}
 }
 
-// WebhookMessage represents a message to be sent via NATS
 type WebhookMessage struct {
 	SessionID    string          `json:"session_id"`
 	WebhookURL   string          `json:"webhook_url"`
@@ -41,7 +38,6 @@ type WebhookMessage struct {
 	Payload      *WebhookPayload `json:"payload"`
 }
 
-// ProcessEvent processes an event and publishes to NATS if webhook is configured
 func (p *WebhookProcessor) ProcessEvent(sessionID string, eventType constants.WebhookEventType, payload *WebhookPayload) error {
 	// 1. Get session from database
 	ctx := context.Background()
@@ -121,7 +117,6 @@ func (p *WebhookProcessor) ProcessEvent(sessionID string, eventType constants.We
 	return nil
 }
 
-// isEventSubscribed checks if an event type is in the subscribed events list
 func (p *WebhookProcessor) isEventSubscribed(subscribedEvents []string, eventType constants.WebhookEventType) bool {
 	// If no events specified, subscribe to all
 	if len(subscribedEvents) == 0 {
@@ -142,7 +137,6 @@ func (p *WebhookProcessor) isEventSubscribed(subscribedEvents []string, eventTyp
 	return false
 }
 
-// ValidateWebhookConfig validates webhook configuration
 func ValidateWebhookConfig(config *model.WebhookConfig) error {
 	if config == nil {
 		return fmt.Errorf("webhook config is nil")

@@ -215,8 +215,6 @@ func (m *SessionManager) ConnectSession(ctx context.Context, sessionID string) e
 	return nil
 }
 
-// handleQRCodes processa os QR codes gerados pelo whatsmeow
-// Baseado no código da wuzapi: https://github.com/asternic/wuzapi
 func (m *SessionManager) handleQRCodes(ctx context.Context, sessionID string, qrChan <-chan whatsmeow.QRChannelItem, client *whatsmeow.Client) {
 	logger.Log.Info().
 		Str("session_id", sessionID).
@@ -395,7 +393,6 @@ func (m *SessionManager) handleQRCodes(ctx context.Context, sessionID string, qr
 	}
 }
 
-// GetQRCode retorna o QR code atual da memória
 func (m *SessionManager) GetQRCode(sessionID string) (string, bool) {
 	m.qrCodesMux.RLock()
 	defer m.qrCodesMux.RUnlock()
@@ -404,7 +401,6 @@ func (m *SessionManager) GetQRCode(sessionID string) (string, bool) {
 	return qrCode, exists
 }
 
-// GetClient retorna o cliente WhatsApp de uma sessão
 func (m *SessionManager) GetClient(sessionID string) (*whatsmeow.Client, error) {
 	m.clientsMux.RLock()
 	defer m.clientsMux.RUnlock()

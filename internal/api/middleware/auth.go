@@ -82,7 +82,6 @@ func CORS() gin.HandlerFunc {
 	}
 }
 
-// RequestLogger logs HTTP requests with detailed information
 func RequestLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Generate unique request ID
@@ -129,7 +128,6 @@ func RequestLogger() gin.HandlerFunc {
 	}
 }
 
-// RequestLoggerWithSkip logs HTTP requests but skips certain paths (like health checks)
 func RequestLoggerWithSkip(skipPaths ...string) gin.HandlerFunc {
 	skipMap := make(map[string]bool)
 	for _, path := range skipPaths {

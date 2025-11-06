@@ -13,7 +13,6 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-// SendTextMessage envia uma mensagem de texto
 func (m *SessionManager) SendTextMessage(ctx context.Context, client *whatsmeow.Client, phone string, message string) (string, time.Time, error) {
 	// Parsear JID do destinatário
 	recipient, err := parseJID(phone)
@@ -40,7 +39,6 @@ func (m *SessionManager) SendTextMessage(ctx context.Context, client *whatsmeow.
 	return resp.ID, resp.Timestamp, nil
 }
 
-// SendImageMessage envia uma mensagem de imagem
 func (m *SessionManager) SendImageMessage(ctx context.Context, client *whatsmeow.Client, phone string, imageData []byte, caption string, mimeType string) (string, time.Time, error) {
 	// Parsear JID do destinatário
 	recipient, err := parseJID(phone)
@@ -82,7 +80,6 @@ func (m *SessionManager) SendImageMessage(ctx context.Context, client *whatsmeow
 	return resp.ID, resp.Timestamp, nil
 }
 
-// SendAudioMessage envia uma mensagem de áudio
 func (m *SessionManager) SendAudioMessage(ctx context.Context, client *whatsmeow.Client, phone string, audioData []byte, mimeType string) (string, time.Time, error) {
 	recipient, err := parseJID(phone)
 	if err != nil {
@@ -119,7 +116,6 @@ func (m *SessionManager) SendAudioMessage(ctx context.Context, client *whatsmeow
 	return resp.ID, resp.Timestamp, nil
 }
 
-// SendImageFromURL envia imagem a partir de URL ou base64
 func (m *SessionManager) SendImageFromURL(ctx context.Context, client *whatsmeow.Client, phone string, imageURL string, caption string) (string, time.Time, error) {
 	// Download ou decode da imagem
 	imageData, mimeType, err := downloadOrDecodeMedia(imageURL)
@@ -174,7 +170,6 @@ func (m *SessionManager) SendImageFromURL(ctx context.Context, client *whatsmeow
 	return resp.ID, resp.Timestamp, nil
 }
 
-// SendAudioFromURL envia áudio a partir de URL ou base64
 func (m *SessionManager) SendAudioFromURL(ctx context.Context, client *whatsmeow.Client, phone string, audioURL string) (string, time.Time, error) {
 	// Download ou decode do áudio
 	audioData, mimeType, err := downloadOrDecodeMedia(audioURL)
@@ -230,7 +225,6 @@ func (m *SessionManager) SendAudioFromURL(ctx context.Context, client *whatsmeow
 	return resp.ID, resp.Timestamp, nil
 }
 
-// SendVideoFromURL envia vídeo a partir de URL ou base64
 func (m *SessionManager) SendVideoFromURL(ctx context.Context, client *whatsmeow.Client, phone string, videoURL string, caption string) (string, time.Time, error) {
 	// Download ou decode do vídeo
 	videoData, mimeType, err := downloadOrDecodeMedia(videoURL)
@@ -286,7 +280,6 @@ func (m *SessionManager) SendVideoFromURL(ctx context.Context, client *whatsmeow
 	return resp.ID, resp.Timestamp, nil
 }
 
-// SendDocumentFromURL envia documento a partir de URL ou base64
 func (m *SessionManager) SendDocumentFromURL(ctx context.Context, client *whatsmeow.Client, phone string, docURL string, fileName string, caption string) (string, time.Time, error) {
 	docData, mimeType, err := downloadOrDecodeMedia(docURL)
 	if err != nil {
@@ -334,7 +327,6 @@ func (m *SessionManager) SendDocumentFromURL(ctx context.Context, client *whatsm
 	return resp.ID, resp.Timestamp, nil
 }
 
-// SendPresence envia presença (digitando, gravando, etc)
 func (m *SessionManager) SendPresence(ctx context.Context, client *whatsmeow.Client, phone string, presence string) error {
 	recipient, err := parseJID(phone)
 	if err != nil {
@@ -374,7 +366,6 @@ func (m *SessionManager) SendPresence(ctx context.Context, client *whatsmeow.Cli
 	return nil
 }
 
-// SendLocation envia localização
 func (m *SessionManager) SendLocation(ctx context.Context, client *whatsmeow.Client, phone string, latitude float64, longitude float64, name string) (string, time.Time, error) {
 	recipient, err := parseJID(phone)
 	if err != nil {
@@ -398,14 +389,12 @@ func (m *SessionManager) SendLocation(ctx context.Context, client *whatsmeow.Cli
 	return resp.ID, resp.Timestamp, nil
 }
 
-// ContactData representa dados de um contato
 type ContactData struct {
 	Name  string
 	Phone string
 	Vcard string
 }
 
-// SendContact envia contato único com vCard formatado
 func (m *SessionManager) SendContact(ctx context.Context, client *whatsmeow.Client, phone string, contactName string, contactPhone string, customVcard string) (string, time.Time, error) {
 	recipient, err := parseJID(phone)
 	if err != nil {
@@ -430,7 +419,6 @@ func (m *SessionManager) SendContact(ctx context.Context, client *whatsmeow.Clie
 	return resp.ID, resp.Timestamp, nil
 }
 
-// SendContactsList envia lista de contatos usando ContactsArrayMessage
 func (m *SessionManager) SendContactsList(ctx context.Context, client *whatsmeow.Client, phone string, contacts []ContactData) (string, time.Time, error) {
 	recipient, err := parseJID(phone)
 	if err != nil {
@@ -473,7 +461,6 @@ func (m *SessionManager) SendContactsList(ctx context.Context, client *whatsmeow
 	return resp.ID, resp.Timestamp, nil
 }
 
-// generateVcard gera vCard formatado corretamente para WhatsApp
 func generateVcard(contactName string, contactPhone string, customVcard string) string {
 	// Se vCard customizado foi fornecido, usar ele
 	if customVcard != "" {
@@ -500,7 +487,6 @@ TEL;type=CELL;type=VOICE;waid=%s:%s
 END:VCARD`, contactName, cleanPhone, formattedPhone)
 }
 
-// formatPhoneForDisplay formata número de telefone para exibição
 func formatPhoneForDisplay(phone string) string {
 	// Se for número brasileiro (55)
 	if len(phone) >= 12 && phone[:2] == "55" {
@@ -521,7 +507,6 @@ func formatPhoneForDisplay(phone string) string {
 	return phone
 }
 
-// SendSticker envia sticker a partir de URL ou base64
 func (m *SessionManager) SendSticker(ctx context.Context, client *whatsmeow.Client, phone string, stickerURL string, stickerBase64 string) (string, time.Time, error) {
 	recipient, err := parseJID(phone)
 	if err != nil {
@@ -579,7 +564,6 @@ func (m *SessionManager) SendSticker(ctx context.Context, client *whatsmeow.Clie
 	return resp.ID, resp.Timestamp, nil
 }
 
-// SendPoll envia enquete
 func (m *SessionManager) SendPoll(ctx context.Context, client *whatsmeow.Client, phone string, question string, options []string, selectableCount uint32) (string, time.Time, error) {
 	recipient, err := parseJID(phone)
 	if err != nil {
@@ -611,7 +595,6 @@ func (m *SessionManager) SendPoll(ctx context.Context, client *whatsmeow.Client,
 	return resp.ID, resp.Timestamp, nil
 }
 
-// SendReaction envia reação a uma mensagem
 func (m *SessionManager) SendReaction(ctx context.Context, client *whatsmeow.Client, phone string, messageID string, emoji string) (string, time.Time, error) {
 	recipient, err := parseJID(phone)
 	if err != nil {
@@ -655,7 +638,6 @@ func (m *SessionManager) SendReaction(ctx context.Context, client *whatsmeow.Cli
 	return resp.ID, resp.Timestamp, nil
 }
 
-// MarkAsRead marca mensagens como lidas
 func (m *SessionManager) MarkAsRead(ctx context.Context, client *whatsmeow.Client, phone string, messageIDs []string) error {
 	recipient, err := parseJID(phone)
 	if err != nil {
@@ -677,7 +659,6 @@ func (m *SessionManager) MarkAsRead(ctx context.Context, client *whatsmeow.Clien
 	return nil
 }
 
-// RevokeMessage revoga uma mensagem enviada
 func (m *SessionManager) RevokeMessage(ctx context.Context, client *whatsmeow.Client, phone string, messageID string) (string, time.Time, error) {
 	recipient, err := parseJID(phone)
 	if err != nil {
@@ -704,7 +685,6 @@ func (m *SessionManager) RevokeMessage(ctx context.Context, client *whatsmeow.Cl
 	return resp.ID, resp.Timestamp, nil
 }
 
-// EditMessage edita uma mensagem enviada
 func (m *SessionManager) EditMessage(ctx context.Context, client *whatsmeow.Client, phone string, messageID string, newText string) (string, time.Time, error) {
 	recipient, err := parseJID(phone)
 	if err != nil {
@@ -724,7 +704,6 @@ func (m *SessionManager) EditMessage(ctx context.Context, client *whatsmeow.Clie
 	return resp.ID, resp.Timestamp, nil
 }
 
-// parseJID converte um número de telefone em JID do WhatsApp
 func parseJID(phone string) (types.JID, error) {
 	// Remover caracteres não numéricos
 	cleanPhone := ""

@@ -7,15 +7,12 @@ import (
 	"zpwoot/internal/constants"
 )
 
-// WebhookFormatter formats whatsmeow events into webhook payloads
 type WebhookFormatter struct{}
 
-// NewWebhookFormatter creates a new webhook formatter
 func NewWebhookFormatter() *WebhookFormatter {
 	return &WebhookFormatter{}
 }
 
-// WebhookPayload represents the standard webhook payload structure
 type WebhookPayload struct {
 	Event     string                 `json:"event"`
 	SessionID string                 `json:"session_id"`
@@ -23,7 +20,6 @@ type WebhookPayload struct {
 	Data      map[string]interface{} `json:"data"`
 }
 
-// FormatMessage formats a Message event
 func (f *WebhookFormatter) FormatMessage(sessionID string, evt *events.Message) *WebhookPayload {
 	data := map[string]interface{}{
 		"message_id": evt.Info.ID,
@@ -67,7 +63,6 @@ func (f *WebhookFormatter) FormatMessage(sessionID string, evt *events.Message) 
 	}
 }
 
-// FormatReceipt formats a Receipt event
 func (f *WebhookFormatter) FormatReceipt(sessionID string, evt *events.Receipt) *WebhookPayload {
 	data := map[string]interface{}{
 		"message_ids": evt.MessageIDs,
@@ -85,7 +80,6 @@ func (f *WebhookFormatter) FormatReceipt(sessionID string, evt *events.Receipt) 
 	}
 }
 
-// FormatConnected formats a Connected event
 func (f *WebhookFormatter) FormatConnected(sessionID string, evt *events.Connected) *WebhookPayload {
 	data := map[string]interface{}{
 		"status": "connected",
@@ -99,7 +93,6 @@ func (f *WebhookFormatter) FormatConnected(sessionID string, evt *events.Connect
 	}
 }
 
-// FormatDisconnected formats a Disconnected event
 func (f *WebhookFormatter) FormatDisconnected(sessionID string, evt *events.Disconnected) *WebhookPayload {
 	data := map[string]interface{}{
 		"status": "disconnected",
@@ -113,7 +106,6 @@ func (f *WebhookFormatter) FormatDisconnected(sessionID string, evt *events.Disc
 	}
 }
 
-// FormatGroupInfo formats a GroupInfo event
 func (f *WebhookFormatter) FormatGroupInfo(sessionID string, evt *events.GroupInfo) *WebhookPayload {
 	data := map[string]interface{}{
 		"jid":       evt.JID.String(),
@@ -134,7 +126,6 @@ func (f *WebhookFormatter) FormatGroupInfo(sessionID string, evt *events.GroupIn
 	}
 }
 
-// FormatPicture formats a Picture event
 func (f *WebhookFormatter) FormatPicture(sessionID string, evt *events.Picture) *WebhookPayload {
 	data := map[string]interface{}{
 		"jid":       evt.JID.String(),

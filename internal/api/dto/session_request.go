@@ -31,7 +31,6 @@ type UpdateWebhookRequest struct {
 	Webhook WebhookConfig `json:"webhook" binding:"required"`
 }
 
-// SetWebhookRequest - Request para configurar webhook de uma sessão
 type SetWebhookRequest struct {
 	Enabled bool     `json:"enabled" example:"true"`
 	URL     string   `json:"url" binding:"required_if=Enabled true,omitempty,url" example:"https://hooks.exemplo.com/whatsapp"`

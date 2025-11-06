@@ -12,7 +12,6 @@ import (
 	"zpwoot/pkg/logger"
 )
 
-// WebhookWorker consumes webhook messages from NATS and delivers them
 type WebhookWorker struct {
 	id              int
 	natsClient      *natsclient.Client
@@ -23,7 +22,6 @@ type WebhookWorker struct {
 	log             zerolog.Logger // Worker-specific logger with context
 }
 
-// NewWebhookWorker creates a new webhook worker
 func NewWebhookWorker(
 	id int,
 	natsClient *natsclient.Client,
@@ -44,7 +42,6 @@ func NewWebhookWorker(
 	}
 }
 
-// Start starts the worker
 func (w *WebhookWorker) Start() error {
 	w.log.Info().
 		Str(logger.FieldSubject, "webhooks.*").
@@ -64,7 +61,6 @@ func (w *WebhookWorker) Start() error {
 	return nil
 }
 
-// Stop stops the worker
 func (w *WebhookWorker) Stop() error {
 	if w.subscription != nil {
 		return w.subscription.Unsubscribe()
@@ -72,7 +68,6 @@ func (w *WebhookWorker) Stop() error {
 	return nil
 }
 
-// handleMessage processes a webhook message from NATS
 func (w *WebhookWorker) handleMessage(msg *nats.Msg) {
 	// Parse webhook message
 	var webhookMsg WebhookMessage
@@ -129,7 +124,6 @@ func (w *WebhookWorker) handleMessage(msg *nats.Msg) {
 	}
 }
 
-// retryWebhook retries a failed webhook with exponential backoff
 func (w *WebhookWorker) retryWebhook(msg *nats.Msg, webhookMsg *WebhookMessage, sessionLog zerolog.Logger) {
 	// Calculate delay: 5s, 25s, 125s (exponential)
 	delay := w.calculateRetryDelay(webhookMsg.Attempt)
@@ -168,7 +162,6 @@ func (w *WebhookWorker) retryWebhook(msg *nats.Msg, webhookMsg *WebhookMessage, 
 	msg.Ack()
 }
 
-// moveToDLQ moves a failed webhook to the dead letter queue
 func (w *WebhookWorker) moveToDLQ(webhookMsg *WebhookMessage, result *DeliveryResult, sessionLog zerolog.Logger) {
 	sessionLog.Error().
 		Int("attempts", webhookMsg.Attempt).
@@ -194,7 +187,6 @@ func (w *WebhookWorker) moveToDLQ(webhookMsg *WebhookMessage, result *DeliveryRe
 	}
 }
 
-// calculateRetryDelay calculates exponential backoff delay
 func (w *WebhookWorker) calculateRetryDelay(attempt int) time.Duration {
 	// Attempt 1: 5s
 	// Attempt 2: 25s (5s * 5)
