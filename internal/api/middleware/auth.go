@@ -3,11 +3,13 @@ package middleware
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"zpwoot/internal/config"
 	"zpwoot/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func AuthenticateGlobal() gin.HandlerFunc {
@@ -28,8 +30,8 @@ func AuthenticateGlobal() gin.HandlerFunc {
 		// Validar API Key
 		if apiKey == "" {
 			logger.Log.Warn().
-				Str("ip", c.ClientIP()).
-				Str("path", c.Request.URL.Path).
+				Str(logger.FieldIP, c.ClientIP()).
+				Str(logger.FieldPath, c.Request.URL.Path).
 				Msg("Missing API key")
 
 			c.JSON(http.StatusUnauthorized, gin.H{
@@ -42,8 +44,8 @@ func AuthenticateGlobal() gin.HandlerFunc {
 
 		if apiKey != expectedAPIKey {
 			logger.Log.Warn().
-				Str("ip", c.ClientIP()).
-				Str("path", c.Request.URL.Path).
+				Str(logger.FieldIP, c.ClientIP()).
+				Str(logger.FieldPath, c.Request.URL.Path).
 				Msg("Invalid API key")
 
 			c.JSON(http.StatusUnauthorized, gin.H{
@@ -56,8 +58,8 @@ func AuthenticateGlobal() gin.HandlerFunc {
 
 		// API Key válida - continuar
 		logger.Log.Debug().
-			Str("ip", c.ClientIP()).
-			Str("path", c.Request.URL.Path).
+			Str(logger.FieldIP, c.ClientIP()).
+			Str(logger.FieldPath, c.Request.URL.Path).
 			Msg("Request authenticated")
 
 		c.Next()
@@ -80,21 +82,68 @@ func CORS() gin.HandlerFunc {
 	}
 }
 
+// RequestLogger logs HTTP requests with detailed information
 func RequestLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		logger.Log.Info().
-			Str("method", c.Request.Method).
-			Str("path", c.Request.URL.Path).
-			Str("ip", c.ClientIP()).
-			Str("user_agent", c.Request.UserAgent()).
-			Msg("Incoming request")
+		// Generate unique request ID
+		requestID := uuid.New().String()
+		c.Set("request_id", requestID)
 
+		// Record start time
+		startTime := time.Now()
+
+		// Log incoming request
+		logger.Log.Info().
+			Str(logger.FieldRequestID, requestID).
+			Str(logger.FieldMethod, c.Request.Method).
+			Str(logger.FieldPath, c.Request.URL.Path).
+			Str(logger.FieldIP, c.ClientIP()).
+			Str(logger.FieldUserAgent, c.Request.UserAgent()).
+			Str("query", c.Request.URL.RawQuery).
+			Msg("→ Incoming request")
+
+		// Process request
 		c.Next()
 
-		logger.Log.Info().
-			Str("method", c.Request.Method).
-			Str("path", c.Request.URL.Path).
-			Int("status", c.Writer.Status()).
-			Msg("Request completed")
+		// Calculate duration
+		duration := time.Since(startTime)
+		status := c.Writer.Status()
+
+		// Determine log level based on status code
+		logEvent := logger.Log.Info()
+		if status >= 500 {
+			logEvent = logger.Log.Error()
+		} else if status >= 400 {
+			logEvent = logger.Log.Warn()
+		}
+
+		// Log completed request
+		logEvent.
+			Str(logger.FieldRequestID, requestID).
+			Str(logger.FieldMethod, c.Request.Method).
+			Str(logger.FieldPath, c.Request.URL.Path).
+			Int(logger.FieldStatus, status).
+			Dur(logger.FieldDuration, duration).
+			Int("response_size", c.Writer.Size()).
+			Msg("← Request completed")
+	}
+}
+
+// RequestLoggerWithSkip logs HTTP requests but skips certain paths (like health checks)
+func RequestLoggerWithSkip(skipPaths ...string) gin.HandlerFunc {
+	skipMap := make(map[string]bool)
+	for _, path := range skipPaths {
+		skipMap[path] = true
+	}
+
+	return func(c *gin.Context) {
+		// Skip logging for certain paths
+		if skipMap[c.Request.URL.Path] {
+			c.Next()
+			return
+		}
+
+		// Use regular request logger
+		RequestLogger()(c)
 	}
 }

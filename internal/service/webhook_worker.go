@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"github.com/rs/zerolog"
 	natsclient "zpwoot/internal/nats"
 	"zpwoot/pkg/logger"
 )
@@ -19,6 +20,7 @@ type WebhookWorker struct {
 	maxRetries      int
 	retryBaseDelay  time.Duration
 	subscription    *nats.Subscription
+	log             zerolog.Logger // Worker-specific logger with context
 }
 
 // NewWebhookWorker creates a new webhook worker
@@ -29,19 +31,24 @@ func NewWebhookWorker(
 	maxRetries int,
 	retryBaseDelay time.Duration,
 ) *WebhookWorker {
+	// Create worker-specific logger with context
+	workerLog := logger.WithWorker(id)
+
 	return &WebhookWorker{
 		id:             id,
 		natsClient:     natsClient,
 		delivery:       delivery,
 		maxRetries:     maxRetries,
 		retryBaseDelay: retryBaseDelay,
+		log:            workerLog,
 	}
 }
 
 // Start starts the worker
 func (w *WebhookWorker) Start() error {
-	logger.Log.Info().
-		Int("worker_id", w.id).
+	w.log.Info().
+		Str(logger.FieldSubject, "webhooks.*").
+		Str(logger.FieldQueue, "webhook-workers").
 		Msg("Starting webhook worker")
 
 	// Subscribe to webhooks.* with queue group for load balancing
@@ -52,9 +59,7 @@ func (w *WebhookWorker) Start() error {
 
 	w.subscription = sub
 
-	logger.Log.Info().
-		Int("worker_id", w.id).
-		Msg("Webhook worker started and listening")
+	w.log.Info().Msg("✅ Webhook worker started and listening")
 
 	return nil
 }
@@ -73,28 +78,28 @@ func (w *WebhookWorker) handleMessage(msg *nats.Msg) {
 	var webhookMsg WebhookMessage
 	err := json.Unmarshal(msg.Data, &webhookMsg)
 	if err != nil {
-		logger.Log.Error().
+		w.log.Error().
 			Err(err).
-			Int("worker_id", w.id).
 			Msg("Failed to unmarshal webhook message")
 		msg.Ack() // ACK to remove from queue
 		return
 	}
 
-	logger.Log.Debug().
-		Int("worker_id", w.id).
-		Str("session_id", webhookMsg.SessionID).
-		Str("url", webhookMsg.WebhookURL).
-		Int("attempt", webhookMsg.Attempt).
-		Msg("Processing webhook message")
+	// Create session-specific logger
+	sessionLog := w.log.With().
+		Str(logger.FieldSessionID, webhookMsg.SessionID).
+		Str(logger.FieldURL, webhookMsg.WebhookURL).
+		Str(logger.FieldEvent, webhookMsg.Payload.Event).
+		Int(logger.FieldAttempt, webhookMsg.Attempt).
+		Logger()
+
+	sessionLog.Debug().Msg("Processing webhook message")
 
 	// Marshal payload to JSON
 	payloadBytes, err := json.Marshal(webhookMsg.Payload)
 	if err != nil {
-		logger.Log.Error().
+		sessionLog.Error().
 			Err(err).
-			Int("worker_id", w.id).
-			Str("session_id", webhookMsg.SessionID).
 			Msg("Failed to marshal webhook payload")
 		msg.Ack() // ACK to remove from queue
 		return
@@ -107,38 +112,32 @@ func (w *WebhookWorker) handleMessage(msg *nats.Msg) {
 	if result.Success {
 		// Success - ACK message
 		msg.Ack()
-		logger.Log.Info().
-			Int("worker_id", w.id).
-			Str("session_id", webhookMsg.SessionID).
-			Str("event", webhookMsg.Payload.Event).
-			Int("status", result.StatusCode).
-			Dur("duration", result.Duration).
-			Msg("Webhook delivered successfully")
+		sessionLog.Info().
+			Int(logger.FieldStatus, result.StatusCode).
+			Dur(logger.FieldDuration, result.Duration).
+			Msg("✅ Webhook delivered successfully")
 	} else {
 		// Failed - check if should retry
 		if webhookMsg.Attempt < w.maxRetries && IsRetryableError(result) {
 			// Retry with exponential backoff
-			w.retryWebhook(msg, &webhookMsg)
+			w.retryWebhook(msg, &webhookMsg, sessionLog)
 		} else {
 			// Max retries reached or non-retryable error - move to DLQ
-			w.moveToDLQ(&webhookMsg, result)
+			w.moveToDLQ(&webhookMsg, result, sessionLog)
 			msg.Ack() // ACK original message
 		}
 	}
 }
 
 // retryWebhook retries a failed webhook with exponential backoff
-func (w *WebhookWorker) retryWebhook(msg *nats.Msg, webhookMsg *WebhookMessage) {
+func (w *WebhookWorker) retryWebhook(msg *nats.Msg, webhookMsg *WebhookMessage, sessionLog zerolog.Logger) {
 	// Calculate delay: 5s, 25s, 125s (exponential)
 	delay := w.calculateRetryDelay(webhookMsg.Attempt)
 
-	logger.Log.Warn().
-		Int("worker_id", w.id).
-		Str("session_id", webhookMsg.SessionID).
-		Int("attempt", webhookMsg.Attempt).
+	sessionLog.Warn().
 		Int("max_retries", w.maxRetries).
 		Dur("retry_delay", delay).
-		Msg("Webhook delivery failed, scheduling retry")
+		Msg("⚠️ Webhook delivery failed, scheduling retry")
 
 	// Increment attempt
 	webhookMsg.Attempt++
@@ -149,9 +148,8 @@ func (w *WebhookWorker) retryWebhook(msg *nats.Msg, webhookMsg *WebhookMessage) 
 	// Re-publish to NATS for retry
 	data, err := json.Marshal(webhookMsg)
 	if err != nil {
-		logger.Log.Error().
+		sessionLog.Error().
 			Err(err).
-			Str("session_id", webhookMsg.SessionID).
 			Msg("Failed to marshal webhook for retry")
 		msg.Ack()
 		return
@@ -160,9 +158,9 @@ func (w *WebhookWorker) retryWebhook(msg *nats.Msg, webhookMsg *WebhookMessage) 
 	subject := fmt.Sprintf("webhooks.%s", webhookMsg.SessionID)
 	err = w.natsClient.Publish(subject, data)
 	if err != nil {
-		logger.Log.Error().
+		sessionLog.Error().
 			Err(err).
-			Str("session_id", webhookMsg.SessionID).
+			Str(logger.FieldSubject, subject).
 			Msg("Failed to republish webhook for retry")
 	}
 
@@ -171,21 +169,17 @@ func (w *WebhookWorker) retryWebhook(msg *nats.Msg, webhookMsg *WebhookMessage) 
 }
 
 // moveToDLQ moves a failed webhook to the dead letter queue
-func (w *WebhookWorker) moveToDLQ(webhookMsg *WebhookMessage, result *DeliveryResult) {
-	logger.Log.Error().
-		Int("worker_id", w.id).
-		Str("session_id", webhookMsg.SessionID).
-		Str("event", webhookMsg.Payload.Event).
+func (w *WebhookWorker) moveToDLQ(webhookMsg *WebhookMessage, result *DeliveryResult, sessionLog zerolog.Logger) {
+	sessionLog.Error().
 		Int("attempts", webhookMsg.Attempt).
-		Str("url", webhookMsg.WebhookURL).
 		Str("error", fmt.Sprintf("%v", result.Error)).
-		Int("status", result.StatusCode).
-		Msg("Webhook delivery failed permanently, moving to DLQ")
+		Int(logger.FieldStatus, result.StatusCode).
+		Msg("❌ Webhook delivery failed permanently, moving to DLQ")
 
 	// Publish to DLQ
 	data, err := json.Marshal(webhookMsg)
 	if err != nil {
-		logger.Log.Error().
+		sessionLog.Error().
 			Err(err).
 			Msg("Failed to marshal webhook for DLQ")
 		return
@@ -193,8 +187,9 @@ func (w *WebhookWorker) moveToDLQ(webhookMsg *WebhookMessage, result *DeliveryRe
 
 	err = w.natsClient.Publish("webhooks.dlq", data)
 	if err != nil {
-		logger.Log.Error().
+		sessionLog.Error().
 			Err(err).
+			Str(logger.FieldSubject, "webhooks.dlq").
 			Msg("Failed to publish to DLQ")
 	}
 }
