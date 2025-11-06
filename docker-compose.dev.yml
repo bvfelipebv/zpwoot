@@ -5,8 +5,6 @@
 # Serviços: PostgreSQL + NATS + DBGate + Webhook Tester
 # ========================================
 
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:

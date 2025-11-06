@@ -5,8 +5,6 @@
 # Serviços: PostgreSQL + NATS + zpwoot API
 # ========================================
 
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:

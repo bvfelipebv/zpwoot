@@ -120,6 +120,12 @@ docker-up: ## Inicia containers (produção)
 docker-down: ## Para containers
 	@docker compose down
 
+.PHONY: docker-down-v
+docker-down-v: ## Para containers e remove volumes
+	@echo "$(YELLOW)Parando containers e removendo volumes...$(NC)"
+	@docker compose down -v
+	@echo "$(GREEN)✅ Containers e volumes removidos$(NC)"
+
 .PHONY: docker-logs
 docker-logs: ## Logs dos containers
 	@docker compose logs -f
@@ -147,6 +153,12 @@ dev-up: ## Inicia ambiente dev (postgres+nats+dbgate+webhook)
 .PHONY: dev-down
 dev-down: ## Para ambiente dev
 	@docker compose -f docker-compose.dev.yml down
+
+.PHONY: dev-down-v
+dev-down-v: ## Para ambiente dev e remove volumes
+	@echo "$(YELLOW)Parando ambiente dev e removendo volumes...$(NC)"
+	@docker compose -f docker-compose.dev.yml down -v
+	@echo "$(GREEN)✅ Ambiente dev e volumes removidos$(NC)"
 
 .PHONY: dev-logs
 dev-logs: ## Logs do ambiente dev
@@ -186,6 +198,14 @@ webhook-up: ## Inicia Webhook Tester
 .PHONY: clean
 clean: ## Remove arquivos compilados
 	@rm -rf $(BINARY_DIR) coverage.out coverage.html
+
+.PHONY: clean-all
+clean-all: ## Remove TUDO (containers, volumes, binários)
+	@echo "$(RED)⚠️  Removendo TODOS os containers e volumes...$(NC)"
+	@docker compose down -v 2>/dev/null || true
+	@docker compose -f docker-compose.dev.yml down -v 2>/dev/null || true
+	@rm -rf $(BINARY_DIR) coverage.out coverage.html
+	@echo "$(GREEN)✅ Limpeza completa concluída$(NC)"
 
 .PHONY: kill
 kill: ## Mata processo na porta 8080
