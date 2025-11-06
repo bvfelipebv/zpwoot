@@ -60,6 +60,7 @@ func main() {
 		logger.Log.Fatal().Err(err).Msg("Failed to initialize database")
 	}
 	defer db.Close()
+	logger.Log.Info().Msg("✅ Database connected")
 
 	// Initialize WhatsApp service
 	whatsappSvc, err := service.NewWhatsAppService(db.DB)
@@ -67,6 +68,7 @@ func main() {
 		logger.Log.Fatal().Err(err).Msg("Failed to initialize WhatsApp service")
 	}
 	defer whatsappSvc.Close()
+	logger.Log.Info().Msg("✅ WhatsApp service ready")
 
 	// Initialize NATS
 	natsClient := natsclient.NewClient(natsclient.Config{
@@ -78,6 +80,7 @@ func main() {
 		logger.Log.Fatal().Err(err).Msg("Failed to connect to NATS")
 	}
 	defer natsClient.Close()
+	logger.Log.Info().Msg("✅ NATS connected")
 
 	// Initialize repositories
 	sessionRepo := repository.NewSessionRepository(db.DB)
@@ -123,6 +126,8 @@ func main() {
 				logger.Log.Info().
 					Int("active_sessions", activeCount).
 					Msg("✅ Sessions restored")
+			} else {
+				logger.Log.Info().Msg("No sessions to restore")
 			}
 		}
 	}

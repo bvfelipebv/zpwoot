@@ -80,7 +80,7 @@ func (w *WebhookWorker) handleMessage(msg *nats.Msg) {
 		Int(logger.FieldAttempt, webhookMsg.Attempt).
 		Logger()
 
-	sessionLog.Debug().Msg("Processing webhook message")
+	sessionLog.Info().Msg("📤 Processing webhook")
 
 	// Marshal payload to JSON
 	payloadBytes, err := json.Marshal(webhookMsg.Payload)

@@ -160,7 +160,7 @@ func (h *EventHandler) handlePairSuccess(sessionID string, evt *events.PairSucce
 		Str("jid", evt.ID.String()).
 		Str("business_name", evt.BusinessName).
 		Str("platform", evt.Platform).
-		Msg("QR Pair Success")
+		Msg("📱 QR Pair Success")
 
 	ctx := context.Background()
 
@@ -198,7 +198,7 @@ func (h *EventHandler) handleConnectedOrPushName(sessionID string, evt interface
 	case *events.Connected:
 		logger.Log.Info().
 			Str("session_id", sessionID).
-			Msg("WhatsApp connected")
+			Msg("🔗 WhatsApp connected")
 	case *events.PushNameSetting:
 		logger.Log.Info().
 			Str("session_id", sessionID).
@@ -240,7 +240,7 @@ func (h *EventHandler) handleConnectedOrPushName(sessionID string, evt interface
 func (h *EventHandler) handleDisconnected(sessionID string, evt *events.Disconnected) {
 	logger.Log.Warn().
 		Str("session_id", sessionID).
-		Msg("WhatsApp disconnected")
+		Msg("🔌 WhatsApp disconnected")
 
 	ctx := context.Background()
 
@@ -284,11 +284,11 @@ func (h *EventHandler) handleLoggedOut(sessionID string, evt *events.LoggedOut) 
 }
 
 func (h *EventHandler) handleMessage(sessionID string, evt *events.Message) {
-	logger.Log.Debug().
+	logger.Log.Info().
 		Str("session_id", sessionID).
 		Str("from", evt.Info.Sender.String()).
 		Str("message_id", evt.Info.ID).
-		Msg("Message received")
+		Msg("💬 Message received")
 
 	// Enviar webhook de mensagem
 	payload := h.webhookFormatter.FormatMessage(sessionID, evt)

@@ -54,7 +54,7 @@ func RunMigrations(ctx context.Context) error {
 	if pendingCount > 0 {
 		logger.Log.Info().
 			Int("applied", pendingCount).
-			Msg("Database migrations completed")
+			Msg("✅ Database migrations completed")
 	}
 	return nil
 }

@@ -110,9 +110,8 @@ func (p *WebhookProcessor) ProcessEvent(sessionID string, eventType constants.We
 	logger.Log.Info().
 		Str("session_id", sessionID).
 		Str("event", string(eventType)).
-		Str("subject", subject).
 		Str("url", session.WebhookConfig.URL).
-		Msg("Webhook published to NATS")
+		Msg("📨 Webhook queued")
 
 	return nil
 }
