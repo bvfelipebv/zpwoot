@@ -496,57 +496,6 @@ func (h *SessionHandler) FindWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// @Summary Limpar configuração de webhook
-// @Description Remove/desabilita a configuração de webhook de uma sessão
-// @Tags Webhook
-// @Produce json
-// @Param id path string true "Session ID"
-// @Success 200 {object} dto.SuccessResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
-// @Security ApiKeyAuth
-// @Router /sessions/{id}/webhook/clear [delete]
-func (h *SessionHandler) ClearWebhook(c *gin.Context) {
-	sessionID := c.Param("id")
-
-	// Verificar se sessão existe
-	_, err := h.sessionManager.GetSession(c.Request.Context(), sessionID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{
-			Error:   "session_not_found",
-			Message: fmt.Sprintf("Session not found: %s", sessionID),
-		})
-		return
-	}
-
-	// Criar configuração vazia/desabilitada
-	webhookConfig := &model.WebhookConfig{
-		Enabled: false,
-		URL:     "",
-		Events:  []string{},
-		Token:   "",
-	}
-
-	// Atualizar configuração
-	if err := h.sessionManager.UpdateWebhookConfig(c.Request.Context(), sessionID, webhookConfig); err != nil {
-		logger.Log.Error().Err(err).Str("session_id", sessionID).Msg("Failed to clear webhook")
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Error:   "clear_failed",
-			Message: err.Error(),
-		})
-		return
-	}
-
-	logger.Log.Info().
-		Str("session_id", sessionID).
-		Msg("Webhook configuration cleared")
-
-	c.JSON(http.StatusOK, dto.SuccessResponse{
-		Success: true,
-		Message: "Webhook configuration cleared successfully",
-	})
-}
-
 // @Summary Listar eventos de webhook suportados
 // @Description Retorna lista completa de todos os eventos de webhook suportados, organizados por categoria
 // @Tags Webhook
@@ -573,34 +522,6 @@ func (h *SessionHandler) ListWebhookEvents(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
-}
-
-// @Summary Listar eventos por categoria
-// @Description Retorna eventos de uma categoria específica
-// @Tags Webhook
-// @Produce json
-// @Param category path string true "Category name" Enums(messages, groups, connection, privacy, sync, calls, presence, identity, newsletter, facebook, special)
-// @Success 200 {object} map[string]interface{}
-// @Failure 404 {object} dto.ErrorResponse
-// @Security ApiKeyAuth
-// @Router /sessions/webhook/events/{category} [get]
-func (h *SessionHandler) GetEventsByCategory(c *gin.Context) {
-	category := c.Param("category")
-
-	events := constants.GetEventsByCategory(category)
-	if len(events) == 0 {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{
-			Error:   "category_not_found",
-			Message: fmt.Sprintf("Category '%s' not found. Available categories: %v", category, constants.GetAllCategories()),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"category": category,
-		"events":   events,
-		"count":    len(events),
-	})
 }
 
 func toSessionResponse(session *model.Session) dto.SessionResponse {

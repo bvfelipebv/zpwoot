@@ -1,5 +1,21 @@
 basePath: /
 definitions:
+  dto.ContactInfo:
+    properties:
+      name:
+        example: John Doe
+        type: string
+      phone:
+        example: "5511888888888"
+        type: string
+      vcard:
+        example: BEGIN:VCARD\nVERSION:3.0\nFN:John Doe\nTEL;waid=5511888888888:+55
+          11 88888-8888\nEND:VCARD
+        type: string
+    required:
+    - name
+    - phone
+    type: object
   dto.CreateSessionRequest:
     properties:
       apikey:
@@ -17,6 +33,22 @@ definitions:
     required:
     - name
     type: object
+  dto.EditMessageRequest:
+    properties:
+      messageId:
+        example: 3EB0XXXXX
+        type: string
+      newMessage:
+        example: Updated message
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+    required:
+    - messageId
+    - newMessage
+    - phone
+    type: object
   dto.ErrorResponse:
     properties:
       details:
@@ -27,6 +59,37 @@ definitions:
       message:
         example: Nome da sessão é obrigatório
         type: string
+    type: object
+  dto.MarkAsReadRequest:
+    properties:
+      messageIds:
+        example:
+        - 3EB0XXXXX
+        - 3EB0YYYYY
+        items:
+          type: string
+        type: array
+      phone:
+        example: "5511999999999"
+        type: string
+    required:
+    - messageIds
+    - phone
+    type: object
+  dto.MessageResponse:
+    properties:
+      messageId:
+        example: 3EB0XXXXX
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: 1699999999
+        type: integer
     type: object
   dto.PairPhoneRequest:
     properties:
@@ -78,6 +141,213 @@ definitions:
       username:
         example: proxyuser
         type: string
+    type: object
+  dto.RevokeMessageRequest:
+    properties:
+      messageId:
+        example: 3EB0XXXXX
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+    required:
+    - messageId
+    - phone
+    type: object
+  dto.SendAudioRequest:
+    properties:
+      audio:
+        example: https://example.com/audio.mp3
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+    required:
+    - audio
+    - phone
+    type: object
+  dto.SendContactRequest:
+    properties:
+      contacts:
+        items:
+          $ref: '#/definitions/dto.ContactInfo'
+        minItems: 1
+        type: array
+      phone:
+        example: "5511999999999"
+        type: string
+    required:
+    - contacts
+    - phone
+    type: object
+  dto.SendDocumentRequest:
+    properties:
+      caption:
+        example: Important document
+        type: string
+      document:
+        example: https://example.com/doc.pdf
+        type: string
+      fileName:
+        example: document.pdf
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+    required:
+    - document
+    - phone
+    type: object
+  dto.SendImageRequest:
+    properties:
+      caption:
+        example: Check this out!
+        type: string
+      image:
+        example: https://example.com/image.jpg
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+    required:
+    - image
+    - phone
+    type: object
+  dto.SendLocationRequest:
+    properties:
+      latitude:
+        example: -23.5505
+        type: number
+      longitude:
+        example: -46.6333
+        type: number
+      name:
+        example: São Paulo
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+    required:
+    - latitude
+    - longitude
+    - phone
+    type: object
+  dto.SendMediaRequest:
+    properties:
+      caption:
+        example: Check this out!
+        type: string
+      fileName:
+        example: file.jpg
+        type: string
+      media:
+        example: https://example.com/file.jpg
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+    required:
+    - media
+    - phone
+    type: object
+  dto.SendPollRequest:
+    properties:
+      options:
+        example:
+        - Red
+        - Blue
+        - Green
+        items:
+          type: string
+        type: array
+      phone:
+        example: "5511999999999"
+        type: string
+      question:
+        example: What's your favorite color?
+        type: string
+      selectableCount:
+        example: 1
+        type: integer
+    required:
+    - options
+    - phone
+    - question
+    type: object
+  dto.SendPresenceRequest:
+    properties:
+      phone:
+        example: "5511999999999"
+        type: string
+      presence:
+        enum:
+        - available
+        - unavailable
+        - composing
+        - recording
+        - paused
+        example: available
+        type: string
+    required:
+    - phone
+    - presence
+    type: object
+  dto.SendReactionRequest:
+    properties:
+      emoji:
+        example: "\U0001F44D"
+        type: string
+      messageId:
+        example: 3EB0XXXXX
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+    required:
+    - emoji
+    - messageId
+    - phone
+    type: object
+  dto.SendStickerRequest:
+    properties:
+      phone:
+        example: "5511999999999"
+        type: string
+      sticker:
+        example: https://example.com/sticker.webp
+        type: string
+      stickerBase64:
+        example: data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=
+        type: string
+    required:
+    - phone
+    type: object
+  dto.SendTextRequest:
+    properties:
+      message:
+        example: Hello, World!
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+    required:
+    - message
+    - phone
+    type: object
+  dto.SendVideoRequest:
+    properties:
+      caption:
+        example: Check this video!
+        type: string
+      phone:
+        example: "5511999999999"
+        type: string
+      video:
+        example: https://example.com/video.mp4
+        type: string
+    required:
+    - phone
+    - video
     type: object
   dto.SessionListResponse:
     properties:
@@ -173,6 +443,28 @@ definitions:
         example: connected
         type: string
     type: object
+  dto.SetWebhookRequest:
+    properties:
+      enabled:
+        example: true
+        type: boolean
+      events:
+        example:
+        - message
+        - status
+        - qr
+        - connected
+        - disconnected
+        items:
+          type: string
+        type: array
+      token:
+        example: Bearer secret-token-123
+        type: string
+      url:
+        example: https://hooks.exemplo.com/whatsapp
+        type: string
+    type: object
   dto.SuccessResponse:
     properties:
       data:
@@ -209,6 +501,34 @@ definitions:
         type: string
       url:
         example: https://hooks.exemplo.com/wuz
+        type: string
+    type: object
+  dto.WebhookConfigResponse:
+    properties:
+      enabled:
+        example: true
+        type: boolean
+      events:
+        example:
+        - message
+        - status
+        - qr
+        - connected
+        - disconnected
+        items:
+          type: string
+        type: array
+      session_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      token:
+        example: Bearer secret-token-123
+        type: string
+      updated_at:
+        example: "2025-11-06T10:30:00Z"
+        type: string
+      url:
+        example: https://hooks.exemplo.com/whatsapp
         type: string
     type: object
 info:
@@ -342,6 +662,467 @@ paths:
       summary: Obter detalhes da sessão
       tags:
       - Sessions
+  /sessions/{id}/message/audio:
+    post:
+      consumes:
+      - application/json
+      description: Envia um áudio para um contato ou grupo
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados do áudio
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendAudioRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar áudio
+      tags:
+      - Messages
+  /sessions/{id}/message/contact:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Envia um contato único (ContactMessage) ou lista de contatos (ContactsArrayMessage)
+        Se contacts tiver 1 item: envia contato único
+        Se contacts tiver múltiplos itens: envia lista de contatos
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados do(s) contato(s)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendContactRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar contato(s)
+      tags:
+      - Messages
+  /sessions/{id}/message/document:
+    post:
+      consumes:
+      - application/json
+      description: Envia um documento para um contato ou grupo
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados do documento
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendDocumentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar documento
+      tags:
+      - Messages
+  /sessions/{id}/message/edit:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados da mensagem
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.EditMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Editar mensagem
+      tags:
+      - Messages
+  /sessions/{id}/message/image:
+    post:
+      consumes:
+      - application/json
+      description: Envia uma imagem para um contato ou grupo
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados da imagem
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendImageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar imagem
+      tags:
+      - Messages
+  /sessions/{id}/message/location:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados da localização
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendLocationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar localização
+      tags:
+      - Messages
+  /sessions/{id}/message/media:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados da mídia
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendMediaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar mídia genérica
+      tags:
+      - Messages
+  /sessions/{id}/message/poll:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados da enquete
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendPollRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar enquete
+      tags:
+      - Messages
+  /sessions/{id}/message/presence:
+    post:
+      consumes:
+      - application/json
+      description: Envia presença (digitando, gravando, disponível, etc)
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados da presença
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendPresenceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar presença
+      tags:
+      - Messages
+  /sessions/{id}/message/reaction:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados da reação
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendReactionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar reação
+      tags:
+      - Messages
+  /sessions/{id}/message/read:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados das mensagens
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MarkAsReadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Marcar mensagens como lidas
+      tags:
+      - Messages
+  /sessions/{id}/message/revoke:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados da mensagem
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RevokeMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Revogar mensagem
+      tags:
+      - Messages
+  /sessions/{id}/message/sticker:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados do sticker
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendStickerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar sticker
+      tags:
+      - Messages
+  /sessions/{id}/message/video:
+    post:
+      consumes:
+      - application/json
+      description: Envia um vídeo para um contato ou grupo
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados do vídeo
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendVideoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar vídeo
+      tags:
+      - Messages
+  /sessions/{id}/messages/send/text:
+    post:
+      consumes:
+      - application/json
+      description: Envia uma mensagem de texto para um contato ou grupo
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados da mensagem
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendTextRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Enviar mensagem de texto
+      tags:
+      - Messages
   /sessions/{id}/pair:
     post:
       consumes:
@@ -382,7 +1163,8 @@ paths:
       - Sessions
   /sessions/{id}/qr:
     get:
-      description: Retorna o QR Code atual da sessão (em memória)
+      description: Retorna o QR Code atual da sessão (em memória) com imagem base64
+        decodificada
       parameters:
       - description: Session ID
         in: path
@@ -395,8 +1177,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "404":
           description: Not Found
@@ -440,7 +1221,8 @@ paths:
     put:
       consumes:
       - application/json
-      description: Atualiza a URL e eventos do webhook de uma sessão
+      deprecated: true
+      description: Atualiza a URL e eventos do webhook de uma sessão (use /webhook/set)
       parameters:
       - description: Session ID
         in: path
@@ -470,9 +1252,80 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - ApiKeyAuth: []
-      summary: Atualizar webhook
+      summary: Atualizar webhook (DEPRECATED)
       tags:
       - Sessions
+  /sessions/{id}/webhook/find:
+    get:
+      description: Retorna a configuração atual de webhook e seus eventos subscritos
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.WebhookConfigResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Obter configuração de webhook
+      tags:
+      - Webhook
+  /sessions/{id}/webhook/set:
+    post:
+      consumes:
+      - application/json
+      description: Configura ou atualiza o webhook de uma sessão específica com seus
+        eventos subscritos
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Configurações de webhook
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SetWebhookRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.WebhookConfigResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Configurar webhook
+      tags:
+      - Webhook
   /sessions/create:
     post:
       consumes:
@@ -524,6 +1377,23 @@ paths:
       summary: Listar sessões
       tags:
       - Sessions
+  /sessions/webhook/events:
+    get:
+      description: Retorna lista completa de todos os eventos de webhook suportados,
+        organizados por categoria
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Listar eventos de webhook suportados
+      tags:
+      - Webhook
 securityDefinitions:
   ApiKeyAuth:
     description: 'Insira sua API Key (exemplo: sldkfjsldkflskdfjlsd)'

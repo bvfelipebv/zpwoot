@@ -33,9 +33,6 @@ func RegisterRoutes(r *gin.Engine, sessionHandler *handlers.SessionHandler, mess
 		// GET /sessions/webhook/events - Listar todos os eventos suportados
 		sessions.GET("/webhook/events", sessionHandler.ListWebhookEvents)
 
-		// GET /sessions/webhook/events/:category - Listar eventos por categoria
-		sessions.GET("/webhook/events/:category", sessionHandler.GetEventsByCategory)
-
 		// POST /sessions/create - Criar nova sessão
 		sessions.POST("/create", sessionHandler.CreateSession)
 
@@ -71,9 +68,6 @@ func RegisterRoutes(r *gin.Engine, sessionHandler *handlers.SessionHandler, mess
 
 			// GET /sessions/:id/webhook/find - Obter configuração de webhook
 			webhook.GET("/find", sessionHandler.FindWebhook)
-
-			// DELETE /sessions/:id/webhook/clear - Limpar/Desabilitar webhook
-			webhook.DELETE("/clear", sessionHandler.ClearWebhook)
 		}
 
 		// === ROTAS DE MENSAGENS ===
